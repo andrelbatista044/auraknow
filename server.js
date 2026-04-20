@@ -55,6 +55,16 @@ app.get('/api/me', verifyToken, async (req, res) => {
     res.json(user);
 });
 
+// --- NOTIFICAÇÕES ---
+app.get('/api/me/notifications', verifyToken, async (req, res) => {
+    const { data } = await supabase.from('notifications').select('*').eq('user_id', req.user.id).order('created_at', { ascending: false });
+    res.json(data || []);
+});
+app.post('/api/me/notifications/:id/read', verifyToken, async (req, res) => {
+    await supabase.from('notifications').update({ is_read: true }).eq('id', req.params.id).eq('user_id', req.user.id);
+    res.json({ success: true });
+});
+
 // --- FINANCEIRO ---
 app.get('/api/me/finance', verifyToken, async (req, res) => {
     const { data } = await supabase.from('payments').select('*').eq('user_id', req.user.id).order('due_date', { ascending: true });
@@ -128,6 +138,28 @@ app.get('/api/modules/:id/lessons', verifyToken, async (req, res) => {
 });
 app.post('/api/admin/lessons', isAdmin, async (req, res) => {
     const { data } = await supabase.from('lessons').insert([req.body]).select();
+    
+    // Disparar notificação
+    if (data && data[0]) {
+        const lesson = data[0];
+        const { data: mod } = await supabase.from('modules').select('subject_id').eq('id', lesson.module_id).single();
+        if (mod && mod.subject_id) {
+            const { data: sub } = await supabase.from('subjects').select('course_id').eq('id', mod.subject_id).single();
+            if (sub && sub.course_id) {
+                const { data: enrollments } = await supabase.from('enrollments').select('user_id').eq('course_id', sub.course_id);
+                if (enrollments && enrollments.length > 0) {
+                    const notifs = enrollments.map(e => ({
+                        user_id: e.user_id,
+                        title: 'Nova Aula',
+                        message: `A aula "${lesson.title}" já está disponível.`,
+                        type: 'lesson'
+                    }));
+                    await supabase.from('notifications').insert(notifs);
+                }
+            }
+        }
+    }
+    
     res.json(data[0]);
 });
 app.put('/api/admin/lessons/:id', isAdmin, async (req, res) => { await supabase.from('lessons').update(req.body).eq('id', req.params.id); res.json({ success: true }); });
@@ -158,6 +190,25 @@ app.post('/api/admin/quizzes', isAdmin, async (req, res) => {
         const questionsWithId = questions.map(q => ({ ...q, quiz_id: quiz.id }));
         await supabase.from('questions').insert(questionsWithId);
     }
+
+    // Disparar notificação
+    const { data: mod } = await supabase.from('modules').select('subject_id').eq('id', module_id).single();
+    if (mod && mod.subject_id) {
+        const { data: sub } = await supabase.from('subjects').select('course_id').eq('id', mod.subject_id).single();
+        if (sub && sub.course_id) {
+            const { data: enrollments } = await supabase.from('enrollments').select('user_id').eq('course_id', sub.course_id);
+            if (enrollments && enrollments.length > 0) {
+                const notifs = enrollments.map(e => ({
+                    user_id: e.user_id,
+                    title: 'Nova Prova Disponível',
+                    message: `A avaliação "${title}" está disponível.`,
+                    type: 'exam'
+                }));
+                await supabase.from('notifications').insert(notifs);
+            }
+        }
+    }
+
     res.json({ success: true });
 });
 
@@ -217,6 +268,15 @@ app.post('/api/admin/finance', isAdmin, async (req, res) => {
     const { user_id, amount, due_date, status } = req.body;
     const { data, error } = await supabase.from('payments').insert([{ user_id, amount, due_date, status }]).select();
     if (error) return res.status(400).json({ error: error.message });
+    
+    // Disparar notificação
+    await supabase.from('notifications').insert([{
+        user_id,
+        title: 'Novo Pagamento',
+        message: `Uma nova fatura de R$ ${parseFloat(amount).toFixed(2)} foi gerada.`,
+        type: 'finance'
+    }]);
+
     res.json(data[0]);
 });
 app.put('/api/admin/finance/:id', isAdmin, async (req, res) => {
