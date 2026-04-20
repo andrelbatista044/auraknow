@@ -127,8 +127,8 @@ app.get('/api/modules/:id/quiz', verifyToken, async (req, res) => {
 });
 
 app.post('/api/admin/quizzes', isAdmin, async (req, res) => {
-    const { module_id, title, passing_score, questions } = req.body;
-    const { data: quiz } = await supabase.from('quizzes').insert([{ module_id, title, passing_score }]).select().single();
+    const { module_id, title, passing_score, order, questions } = req.body;
+    const { data: quiz } = await supabase.from('quizzes').insert([{ module_id, title, passing_score, order: order || 99 }]).select().single();
     if (questions && questions.length > 0) {
         const questionsWithId = questions.map(q => ({ ...q, quiz_id: quiz.id }));
         await supabase.from('questions').insert(questionsWithId);

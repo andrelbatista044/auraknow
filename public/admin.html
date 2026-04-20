@@ -41,6 +41,7 @@
             <h3>Criar Avaliação do Módulo</h3>
             <input type="hidden" id="quizModuleId">
             <input type="text" id="quizTitle" placeholder="Título da Prova">
+            <input type="number" id="quizOrder" placeholder="Ordem dentro do módulo (ex: 2)" min="1">
             <input type="number" id="quizPassingScore" placeholder="Nota de Corte (70)">
             <div id="questionsContainer"></div>
             <button class="action-btn success" onclick="addQuestion()">+ Questão</button>
@@ -168,19 +169,31 @@
                         cachedModules.push({ id: m.id, title: m.title, subject: s.title });
                         const qRes = await fetch(`/api/modules/${m.id}/quiz`);
                         const quiz = await qRes.json();
-                        const quizIndicator = quiz ? `<span style="background: var(--primary); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-left: 10px;">📝 Prova: ${quiz.title}</span>` : '';
                         
                         const mDiv = document.createElement('div');
                         mDiv.className = 'module-box';
-                        mDiv.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center;"><div><strong>📦 ${m.title}</strong>${quizIndicator}</div>
-                                <div><button class="action-btn info" onclick="openQuizModal('${m.id}')">${quiz ? 'Editar Prova' : '+ Prova'}</button><button class="action-btn success" onclick="openLessonModal('create', null, '${m.id}')">+ Aula</button><button class="action-btn danger" onclick="deleteModule('${m.id}')">X</button></div></div><div id="lessons-${m.id}"></div>`;
+                        mDiv.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center;"><strong>📦 ${m.title}</strong>
+                                <div><button class="action-btn info" onclick="openQuizModal('${m.id}', ${quiz ? `'${quiz.id}'` : 'null'})">+ Prova</button><button class="action-btn success" onclick="openLessonModal('create', null, '${m.id}')">+ Aula</button><button class="action-btn danger" onclick="deleteModule('${m.id}')">X</button></div></div><div id="lessons-${m.id}"></div>`;
                         mCont.appendChild(mDiv);
 
+                        // Combina aulas e prova em uma lista única, ordenada por 'order'
                         const lRes = await fetch(`/api/modules/${m.id}/lessons`);
                         const lessons = await lRes.json();
                         const lCont = document.getElementById(`lessons-${m.id}`);
-                        lessons.forEach(l => {
-                            lCont.innerHTML += `<div class="lesson-list-item"><span>${l.order}. ${l.title}</span><div><button class="action-btn" onclick="openLessonModal('edit', '${l.id}', '${m.id}', '${l.title}', '${l.video_url||''}', \`${l.content||''}\`, '${l.order}')">Editar</button><button class="action-btn danger" onclick="deleteLesson('${l.id}')">X</button></div></div>`;
+
+                        const allItems = [
+                            ...lessons.map(l => ({ type: 'lesson', order: l.order, data: l })),
+                            ...(quiz ? [{ type: 'quiz', order: quiz.order || 99, data: quiz }] : [])
+                        ].sort((a, b) => a.order - b.order);
+
+                        allItems.forEach(item => {
+                            if (item.type === 'lesson') {
+                                const l = item.data;
+                                lCont.innerHTML += `<div class="lesson-list-item"><span>📹 ${l.order}. ${l.title}</span><div><button class="action-btn" onclick="openLessonModal('edit', '${l.id}', '${m.id}', '${l.title}', '${l.video_url||''}', \`${l.content||''}\`, '${l.order}')">Editar</button><button class="action-btn danger" onclick="deleteLesson('${l.id}')">X</button></div></div>`;
+                            } else {
+                                const q = item.data;
+                                lCont.innerHTML += `<div class="lesson-list-item" style="border-color: rgba(153, 102, 204, 0.4);"><span>📝 ${q.order}. ${q.title} <span style="font-size:0.7rem; color: var(--primary); margin-left: 6px;">[Avaliação]</span></span><div><button class="action-btn info" onclick="openQuizModal('${m.id}', '${q.id}')">Editar</button></div></div>`;
+                            }
                         });
                     }
                 }
@@ -188,8 +201,11 @@
         }
 
         // --- GESTÃO DE PROVAS ---
-        function openQuizModal(moduleId) {
+        function openQuizModal(moduleId, quizId) {
             document.getElementById('quizModuleId').value = moduleId;
+            document.getElementById('quizTitle').value = '';
+            document.getElementById('quizOrder').value = '';
+            document.getElementById('quizPassingScore').value = '';
             document.getElementById('questionsContainer').innerHTML = '';
             addQuestion();
             document.getElementById('quizModal').style.display = 'flex';
@@ -212,7 +228,7 @@
                 const options = Array.from(card.querySelectorAll('.q-opt')).map(i => i.value).filter(v => v !== '');
                 questions.push({ text: card.querySelector('.q-text').value, options: options, correct_option: parseInt(card.querySelector('.q-correct').value), order: index + 1 });
             });
-            await fetch('/api/admin/quizzes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ module_id: document.getElementById('quizModuleId').value, title: document.getElementById('quizTitle').value, passing_score: parseInt(document.getElementById('quizPassingScore').value), questions: questions }) });
+            await fetch('/api/admin/quizzes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ module_id: document.getElementById('quizModuleId').value, title: document.getElementById('quizTitle').value, passing_score: parseInt(document.getElementById('quizPassingScore').value), order: parseInt(document.getElementById('quizOrder').value) || 99, questions: questions }) });
             alert('Prova Criada/Atualizada!'); 
             closeModals();
             loadCourses();
