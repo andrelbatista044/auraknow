@@ -416,13 +416,23 @@
                         const qRes = await fetch(`/api/modules/${m.id}/quiz`);
                         const quiz = await qRes.json();
                         if (quiz) {
+                            const isExpired = quiz.due_date && new Date() > new Date(quiz.due_date);
                             const qBtn = document.createElement('button');
                             qBtn.className = 'quiz-btn';
-                            const attempt = quizResults.find(r => r.quiz_id === quiz.id);
-                            qBtn.textContent = attempt ? (attempt.passed ? `✅ Aprovado (${attempt.score}%)` : `❌ Reprovado (${attempt.score}%) - Tentar Novamente`) : '📝 Fazer Prova Final';
-                            qBtn.onclick = () => startQuiz(quiz);
+                            
+                            if (isExpired) {
+                                qBtn.innerHTML = `⏰ Prazo Expirado (${new Date(quiz.due_date).toLocaleDateString('pt-BR')})`;
+                                qBtn.style.opacity = '0.6';
+                                qBtn.style.cursor = 'not-allowed';
+                                qBtn.onclick = () => alert('O prazo para realizar esta prova expirou em ' + new Date(quiz.due_date).toLocaleString('pt-BR'));
+                                previousModulePassed = false; // Bloqueia o próximo módulo se o prazo expirou e não passou
+                            } else {
+                                const attempt = quizResults.find(r => r.quiz_id === quiz.id);
+                                qBtn.textContent = attempt ? (attempt.passed ? `✅ Aprovado (${attempt.score}%)` : `❌ Reprovado (${attempt.score}%) - Tentar Novamente`) : '📝 Fazer Prova Final';
+                                qBtn.onclick = () => startQuiz(quiz);
+                                previousModulePassed = attempt ? attempt.passed : false;
+                            }
                             lessonList.appendChild(qBtn);
-                            previousModulePassed = attempt ? attempt.passed : false;
                         } else {
                             previousModulePassed = true; // Sem prova, libera o próximo
                         }

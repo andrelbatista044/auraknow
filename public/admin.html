@@ -43,6 +43,8 @@
             <input type="text" id="quizTitle" placeholder="Título da Prova">
             <input type="number" id="quizOrder" placeholder="Ordem dentro do módulo (ex: 2)" min="1">
             <input type="number" id="quizPassingScore" placeholder="Nota de Corte (70)">
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Data Limite (Opcional)</label>
+            <input type="datetime-local" id="quizDueDate">
             <div id="questionsContainer"></div>
             <button class="action-btn success" onclick="addQuestion()">+ Questão</button>
             <div style="display: flex; gap: 10px; margin-top: 30px;">
@@ -359,6 +361,7 @@
             document.getElementById('quizTitle').value = '';
             document.getElementById('quizOrder').value = '';
             document.getElementById('quizPassingScore').value = '';
+            document.getElementById('quizDueDate').value = '';
             document.getElementById('questionsContainer').innerHTML = '';
             addQuestion();
             document.getElementById('quizModal').style.display = 'flex';
@@ -381,7 +384,19 @@
                 const options = Array.from(card.querySelectorAll('.q-opt')).map(i => i.value).filter(v => v !== '');
                 questions.push({ text: card.querySelector('.q-text').value, options: options, correct_option: parseInt(card.querySelector('.q-correct').value), order: index + 1 });
             });
-            await fetch('/api/admin/quizzes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ module_id: document.getElementById('quizModuleId').value, title: document.getElementById('quizTitle').value, passing_score: parseInt(document.getElementById('quizPassingScore').value), order: parseInt(document.getElementById('quizOrder').value) || 99, questions: questions }) });
+            const dueDate = document.getElementById('quizDueDate').value;
+            await fetch('/api/admin/quizzes', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ 
+                    module_id: document.getElementById('quizModuleId').value, 
+                    title: document.getElementById('quizTitle').value, 
+                    passing_score: parseInt(document.getElementById('quizPassingScore').value), 
+                    order: parseInt(document.getElementById('quizOrder').value) || 99, 
+                    questions: questions,
+                    due_date: dueDate || null
+                }) 
+            });
             alert('Prova Criada/Atualizada!'); 
             closeModals();
             loadCourses();

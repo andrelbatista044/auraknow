@@ -184,8 +184,14 @@ app.get('/api/modules/:id/quiz', verifyToken, async (req, res) => {
 });
 
 app.post('/api/admin/quizzes', isAdmin, async (req, res) => {
-    const { module_id, title, passing_score, order, questions } = req.body;
-    const { data: quiz } = await supabase.from('quizzes').insert([{ module_id, title, passing_score, order: order || 99 }]).select().single();
+    const { module_id, title, passing_score, order, questions, due_date } = req.body;
+    const { data: quiz } = await supabase.from('quizzes').insert([{ 
+        module_id, 
+        title, 
+        passing_score, 
+        order: order || 99,
+        due_date: due_date || null
+    }]).select().single();
     if (questions && questions.length > 0) {
         const questionsWithId = questions.map(q => ({ ...q, quiz_id: quiz.id }));
         await supabase.from('questions').insert(questionsWithId);
@@ -216,6 +222,11 @@ app.post('/api/quizzes/:id/submit', verifyToken, async (req, res) => {
     const { answers } = req.body; // { question_id: option_index }
     const { data: questions } = await supabase.from('questions').select('*').eq('quiz_id', req.params.id);
     const { data: quiz } = await supabase.from('quizzes').select('*').eq('id', req.params.id).single();
+    
+    // Verificar se o prazo expirou
+    if (quiz.due_date && new Date() > new Date(quiz.due_date)) {
+        return res.status(403).json({ error: 'O prazo para realizar esta prova expirou.' });
+    }
     
     let correctCount = 0;
     questions.forEach(q => { if (answers[q.id] == q.correct_option) correctCount++; });
