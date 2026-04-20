@@ -95,19 +95,27 @@ app.get('/api/me/finance', verifyToken, async (req, res) => {
 
 // --- CURSOS / MATERIAS / MODULOS / AULAS (CRUD PADRÃO) ---
 app.get('/api/courses', verifyToken, async (req, res) => {
-    if (req.user.role === 'admin') {
+    // Busca o cargo atual no banco para evitar dados obsoletos do Token
+    const { data: user } = await supabase.from('users').select('role').eq('id', req.user.id).single();
+    const role = user ? user.role : 'student';
+
+    if (role === 'admin') {
         const { data } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
         return res.json(data || []);
     }
-    if (req.user.role === 'teacher') {
+    if (role === 'teacher') {
         const { data: assignments } = await supabase.from('teacher_assignments').select('course_id').eq('teacher_id', req.user.id);
         const courseIds = (assignments || []).map(a => a.course_id);
+        if (courseIds.length === 0) return res.json([]);
+        
         const { data } = await supabase.from('courses').select('*').in('id', courseIds).order('created_at', { ascending: false });
         return res.json(data || []);
     }
     // Aluno
     const { data: enrollments } = await supabase.from('enrollments').select('course_id').eq('user_id', req.user.id);
     const ids = (enrollments || []).map(e => e.course_id);
+    if (ids.length === 0) return res.json([]);
+    
     const { data } = await supabase.from('courses').select('*').in('id', ids).order('created_at', { ascending: false });
     res.json(data || []);
 });
