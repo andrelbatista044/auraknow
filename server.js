@@ -242,12 +242,22 @@ app.get('/api/admin/users', isAdmin, async (req, res) => {
     res.json(data.map(u => ({ ...u, isActive: u.is_active })));
 });
 app.post('/api/admin/create-user', isAdmin, async (req, res) => {
+    if (req.body.registration) {
+        const { data: existing } = await supabase.from('users').select('id').eq('registration', req.body.registration).single();
+        if (existing) return res.status(400).json({ error: 'A matrícula informada já está em uso.' });
+    }
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     await supabase.from('users').insert([{ ...req.body, password: hashedPassword }]);
     res.json({ success: true });
 });
 app.put('/api/admin/users/:id', isAdmin, async (req, res) => {
     const { name, email, role, registration } = req.body;
+    if (registration) {
+        const { data: existing } = await supabase.from('users').select('id').eq('registration', registration).single();
+        if (existing && existing.id !== req.params.id) {
+            return res.status(400).json({ error: 'A matrícula informada já está em uso por outro aluno.' });
+        }
+    }
     await supabase.from('users').update({ name, email, role, registration }).eq('id', req.params.id);
     res.json({ success: true });
 });

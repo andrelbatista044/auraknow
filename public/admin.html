@@ -407,7 +407,8 @@
                 document.getElementById('createUserForm').reset();
                 loadUsers();
             } else {
-                alert('Erro ao criar usuário');
+                const err = await res.json();
+                alert('Erro: ' + (err.error || 'Não foi possível criar o usuário.'));
             }
         });
         
@@ -431,13 +432,18 @@
             const email = document.getElementById('editUserEmail').value;
             const role = document.getElementById('editUserRole').value;
             
-            await fetch(`/api/admin/users/${id}`, {
+            const res = await fetch(`/api/admin/users/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ registration, name, email, role })
             });
-            closeEditUserModal();
-            loadUsers();
+            if (res.ok) {
+                closeEditUserModal();
+                loadUsers();
+            } else {
+                const err = await res.json();
+                alert('Erro: ' + (err.error || 'Não foi possível atualizar o usuário.'));
+            }
         });
 
         async function toggleStatus(userId) { await fetch('/api/admin/toggle-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId }) }); loadUsers(); }
