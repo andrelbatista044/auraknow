@@ -14,8 +14,11 @@
         .course-item:hover { background: rgba(255,255,255,0.05); }
         .course-item.active { background: var(--primary); color: white; border-color: var(--primary); }
         
-        .module-header { font-size: 0.85rem; color: var(--primary); font-weight: 700; margin-top: 20px; margin-bottom: 10px; padding-left: 10px; text-transform: uppercase; letter-spacing: 1px; }
-        .lesson-item { padding: 10px 15px; font-size: 0.85rem; color: var(--text-dim); cursor: pointer; border-radius: 8px; margin-left: 5px; margin-bottom: 2px; }
+        /* Hierarquia Sidebar V3 */
+        .subject-title { font-size: 0.95rem; color: #9b59b6; font-weight: 800; margin-top: 25px; margin-bottom: 10px; padding-left: 10px; border-left: 4px solid #9b59b6; text-transform: uppercase; }
+        .module-title { font-size: 0.8rem; color: var(--text-dim); font-weight: 700; margin-top: 15px; margin-bottom: 5px; padding-left: 15px; display: flex; align-items: center; gap: 8px; }
+        .module-title::before { content: '📦'; font-size: 0.7rem; }
+        .lesson-item { padding: 10px 15px; font-size: 0.8rem; color: var(--text-dim); cursor: pointer; border-radius: 8px; margin-left: 20px; margin-bottom: 2px; transition: all 0.2s; }
         .lesson-item:hover { color: white; background: rgba(255,255,255,0.03); }
         .lesson-item.active { color: white; background: rgba(153, 102, 204, 0.2); font-weight: 600; border-left: 3px solid var(--primary); }
         
@@ -29,14 +32,11 @@
 </head>
 <body>
     <script>
-        let currentUserId = null;
-
         async function checkAuth() {
             try {
                 const res = await fetch('/api/me');
                 if (!res.ok) { window.location.href = 'login.html'; return; }
                 const user = await res.json();
-                currentUserId = user.id;
                 document.getElementById('userName').innerText = user.name;
                 loadEnrollments();
             } catch (e) { window.location.href = 'login.html'; }
@@ -63,38 +63,51 @@
             const lessonList = document.getElementById('lessonList');
             lessonList.innerHTML = '';
 
-            // Carregar Aulas Sem Módulo (Antigas)
-            const noMRes = await fetch(`/api/courses/${courseId}/lessons-no-module`);
-            const noMLessons = await noMRes.json();
-            if (noMLessons.length > 0) {
-                const h = document.createElement('div');
-                h.className = 'module-header';
-                h.textContent = 'Extra / Sem Módulo';
-                lessonList.appendChild(h);
-                noMLessons.forEach(l => {
-                    const lDiv = document.createElement('div');
-                    lDiv.className = 'lesson-item';
-                    lDiv.textContent = `${l.order}. ${l.title}`;
-                    lDiv.onclick = () => playVideo(l.video_url, l.title, l.content, lDiv);
-                    lessonList.appendChild(lDiv);
-                });
+            // 1. CARREGAR MATÉRIAS
+            const sRes = await fetch(`/api/courses/${courseId}/subjects`);
+            const subjects = await sRes.json();
+
+            for (const s of subjects) {
+                const sHeader = document.createElement('div');
+                sHeader.className = 'subject-title';
+                sHeader.textContent = s.title;
+                lessonList.appendChild(sHeader);
+
+                // 2. CARREGAR MÓDULOS DA MATÉRIA
+                const mRes = await fetch(`/api/subjects/${s.id}/modules`);
+                const modules = await mRes.json();
+                for (const m of modules) {
+                    const mHeader = document.createElement('div');
+                    mHeader.className = 'module-title';
+                    mHeader.textContent = m.title;
+                    lessonList.appendChild(mHeader);
+
+                    // 3. CARREGAR AULAS DO MÓDULO
+                    const lRes = await fetch(`/api/modules/${m.id}/lessons`);
+                    const lessons = await lRes.json();
+                    lessons.forEach(l => {
+                        const lDiv = document.createElement('div');
+                        lDiv.className = 'lesson-item';
+                        lDiv.textContent = `${l.order}. ${l.title}`;
+                        lDiv.onclick = () => playVideo(l.video_url, l.title, l.content, lDiv);
+                        lessonList.appendChild(lDiv);
+                    });
+                }
             }
 
-            const res = await fetch(`/api/courses/${courseId}/modules`);
-            const modules = await res.json();
-            
-            for (const m of modules) {
+            // CARREGAR ÓRFÃOS (Conteúdo Legado V2)
+            const orphanLessRes = await fetch(`/api/courses/${courseId}/orphan-lessons`);
+            const orphanLess = await orphanLessRes.json();
+            if(orphanLess.length > 0) {
                 const h = document.createElement('div');
-                h.className = 'module-header';
-                h.textContent = m.title;
+                h.className = 'subject-title';
+                h.style.color = '#ff9f43';
+                h.textContent = 'Aulas Pendentes';
                 lessonList.appendChild(h);
-
-                const lRes = await fetch(`/api/modules/${m.id}/lessons`);
-                const lessons = await lRes.json();
-                lessons.forEach(l => {
+                orphanLess.forEach(l => {
                     const lDiv = document.createElement('div');
                     lDiv.className = 'lesson-item';
-                    lDiv.textContent = `${l.order}. ${l.title}`;
+                    lDiv.textContent = l.title;
                     lDiv.onclick = () => playVideo(l.video_url, l.title, l.content, lDiv);
                     lessonList.appendChild(lDiv);
                 });
@@ -131,32 +144,27 @@
     </script>
 
     <aside class="sidebar">
-        <div class="sidebar-header">
-            <a href="index.html" class="logo" style="font-size: 1.5rem;">Aura<span>Know</span></a>
-        </div>
+        <div class="sidebar-header"><a href="index.html" class="logo" style="font-size: 1.5rem;">Aura<span>Know</span></a></div>
         <div class="content-list">
-            <div class="course-section-title">Meus Cursos</div>
+            <div class="course-section-title">Cursos Ativos</div>
             <div id="enrollmentList"></div>
             <div id="lessonList"></div>
         </div>
         <div class="user-profile">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 50%;"></div>
-                <div>
-                    <div id="userName" style="font-weight: bold; font-size: 0.9rem;">Carregando...</div>
-                    <div style="font-size: 0.7rem; color: var(--text-dim);">Aluno Premium</div>
-                </div>
+                <div><div id="userName" style="font-weight: bold; font-size: 0.9rem;">...</div><div style="font-size: 0.7rem; color: var(--text-dim);">Aluno</div></div>
             </div>
             <button onclick="logout()" style="background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1.2rem;">🚪</button>
         </div>
     </aside>
 
     <main class="main-content">
-        <div id="emptyView" class="empty-state"><h2>Bem-vindo! Selecione um curso ao lado.</h2></div>
+        <div id="emptyView" class="empty-state"><h2>Selecione um curso para começar.</h2></div>
         <div id="mainView" style="display: none;">
             <div class="video-container"><iframe id="videoPlayer" allowfullscreen></iframe></div>
-            <h1 id="lessonTitle" style="margin-bottom: 20px;">Título</h1>
-            <div class="glass" style="padding: 40px;"><h3>Material de Apoio</h3><p id="lessonContent" style="color: var(--text-dim); margin-top: 15px;"></p></div>
+            <h1 id="lessonTitle">...</h1>
+            <div class="glass" style="padding: 40px;"><h3>Descrição</h3><p id="lessonContent" style="color: var(--text-dim); margin-top: 15px;"></p></div>
         </div>
     </main>
 </body>

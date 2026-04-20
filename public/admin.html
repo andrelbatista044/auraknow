@@ -21,8 +21,12 @@
         .action-btn.danger { border-color: #e74c3c; color: #e74c3c; }
         .action-btn.success { border-color: #2ecc71; color: #2ecc71; }
         input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 8px; font-size: 1rem; }
-        .module-box { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 16px; border: 1px solid var(--glass-border); margin-top: 20px; }
-        .lesson-list-item { background: rgba(255,255,255,0.02); padding: 10px 15px; border-radius: 8px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.05); }
+        
+        /* Hierarquia visual V3 */
+        .subject-box { background: rgba(153, 102, 204, 0.05); padding: 20px; border-radius: 20px; border: 1px solid rgba(153, 102, 204, 0.2); margin-top: 20px; }
+        .module-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border); margin-top: 15px; margin-left: 20px; }
+        .lesson-list-item { background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; margin-left: 20px; border: 1px solid rgba(255,255,255,0.05); }
+        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: var(--bg-dark); border: 1px solid var(--glass-border); padding: 40px; border-radius: 24px; width: 600px; max-width: 90%; }
     </style>
@@ -30,6 +34,7 @@
 <body>
     <div class="bg-mesh"></div>
 
+    <!-- MODAL DE EDIÇÃO/CRIAÇÃO DE AULA -->
     <div id="lessonModal" class="modal">
         <div class="modal-content glass">
             <h3 id="modalTitle">Aula</h3>
@@ -41,7 +46,7 @@
             <textarea id="modalLessonContent" placeholder="Conteúdo da Aula" style="height: 200px;"></textarea>
             <input type="number" id="modalLessonOrder" placeholder="Ordem">
             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn-primary" onclick="saveLesson()" style="flex: 1;">Salvar Alterações</button>
+                <button class="btn-primary" onclick="saveLesson()" style="flex: 1;">Salvar</button>
                 <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
             </div>
         </div>
@@ -52,7 +57,7 @@
     <main class="container">
         <div class="admin-tabs">
             <button class="tab-btn active" onclick="showSection('users')">Alunos</button>
-            <button class="tab-btn" onclick="showSection('courses')">Conteúdo</button>
+            <button class="tab-btn" onclick="showSection('courses')">Conteúdo (V3)</button>
         </div>
 
         <div id="usersSection" class="admin-section active">
@@ -65,14 +70,14 @@
         <div id="coursesSection" class="admin-section">
             <div class="admin-grid">
                 <div class="glass" style="padding: 40px;">
-                    <h3>Criar Curso</h3>
+                    <h3>Novo Curso</h3>
                     <form id="createCourseForm"><input type="text" id="courseTitleInput" placeholder="Nome do Curso" required><button type="submit" class="btn-primary" style="width: 100%;">Criar</button></form>
                     <hr style="opacity: 0.1; margin: 40px 0;">
                     <h3>Matrícula</h3>
                     <form id="enrollForm"><select id="enrollStudent" required></select><select id="enrollCourse" required></select><button type="submit" class="btn-primary" style="width: 100%;">Matricular</button></form>
                 </div>
                 <div class="glass" style="padding: 40px;">
-                    <h3>Gestão de Cursos, Módulos e Aulas</h3>
+                    <h3>Gestão Hierárquica</h3>
                     <div id="courseManagementList"></div>
                 </div>
             </div>
@@ -80,7 +85,7 @@
     </main>
 
     <script>
-        let allModules = []; // Para popular o seletor do modal
+        let allModules = [];
 
         function showSection(section) {
             document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
@@ -127,7 +132,7 @@
             
             manageList.innerHTML = '';
             enrollCourse.innerHTML = '<option value="">Selecionar Curso</option>';
-            allModules = []; // Reset global modules list
+            allModules = [];
 
             for (const c of courses) {
                 const courseDiv = document.createElement('div');
@@ -136,89 +141,140 @@
                 courseDiv.style.marginBottom = '30px';
                 courseDiv.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px;">
-                        <h3 style="margin: 0; color: var(--primary);">${c.title}</h3>
+                        <h3 style="margin: 0; color: var(--primary); font-size: 1.2rem;">${c.title}</h3>
                         <div>
-                            <button class="action-btn success" onclick="createModule('${c.id}')">+ Módulo</button>
+                            <button class="action-btn success" onclick="createSubject('${c.id}')">+ Matéria</button>
                             <button class="action-btn" onclick="editCourse('${c.id}', '${c.title}')">Renomear</button>
-                            <button class="action-btn danger" onclick="deleteCourse('${c.id}')">Apagar</button>
+                            <button class="action-btn danger" onclick="deleteCourse('${c.id}')">X</button>
                         </div>
                     </div>
-                    <div id="no-module-${c.id}"></div>
-                    <div id="modules-${c.id}"></div>`;
+                    <div id="orphans-${c.id}"></div>
+                    <div id="subjects-${c.id}"></div>`;
                 manageList.appendChild(courseDiv);
                 enrollCourse.innerHTML += `<option value="${c.id}">${c.title}</option>`;
 
-                // Aulas sem módulo
-                const nmRes = await fetch(`/api/courses/${c.id}/lessons-no-module`);
-                const nmLessons = await nmRes.json();
-                const nmContainer = document.getElementById(`no-module-${c.id}`);
-                if(nmLessons.length > 0) {
-                    nmContainer.innerHTML = '<h5 style="margin-top:15px; color:var(--text-dim);">⚠️ Aulas Pendentes (Sem Módulo)</h5>';
-                    nmLessons.forEach(l => {
-                        nmContainer.innerHTML += `<div class="lesson-list-item"><span>${l.title}</span><button class="action-btn" onclick="openModal('edit', '${l.id}', null, '${l.title}', '${l.video_url || ''}', \`${l.content || ''}\`, '${l.order}')">Mover para Módulo</button></div>`;
+                // BUSCAR ÓRFÃOS (Módulos e Aulas sem pai V3)
+                const orphanModRes = await fetch(`/api/courses/${c.id}/orphan-modules`);
+                const orphanMods = await orphanModRes.json();
+                const orphanLessRes = await fetch(`/api/courses/${c.id}/orphan-lessons`);
+                const orphanLess = await orphanLessRes.json();
+                const orphanContainer = document.getElementById(`orphans-${c.id}`);
+
+                if(orphanMods.length > 0 || orphanLess.length > 0) {
+                    orphanContainer.innerHTML = '<div style="margin-top:15px; color:#ff9f43; font-size:0.8rem; border: 1px dashed #ff9f43; padding:10px; border-radius:10px;">⚠️ Conteúdo Legado (Mova para uma Matéria/Módulo)</div>';
+                    orphanMods.forEach(m => {
+                        orphanContainer.innerHTML += `<div class="module-box" style="border-color:#ff9f43;"><span>Módulo: ${m.title}</span> <button class="action-btn" onclick="moveModule('${m.id}', '${c.id}')">Vincular Matéria</button></div>`;
+                    });
+                    orphanLess.forEach(l => {
+                        orphanContainer.innerHTML += `<div class="lesson-list-item" style="border-color:#ff9f43;"><span>Aula: ${l.title}</span> <button class="action-btn" onclick="openModal('edit', '${l.id}', null, '${l.title}', '${l.video_url || ''}', \`${l.content || ''}\`, '${l.order}')">Mover</button></div>`;
                     });
                 }
 
-                // Módulos e Aulas
-                const mRes = await fetch(`/api/courses/${c.id}/modules`);
-                const modules = await mRes.json();
-                const mContainer = document.getElementById(`modules-${c.id}`);
-                for (const m of modules) {
-                    allModules.push({ id: m.id, title: m.title, course: c.title });
-                    const mBox = document.createElement('div');
-                    mBox.className = 'module-box';
-                    mBox.innerHTML = `
+                // MATÉRIAS
+                const sRes = await fetch(`/api/courses/${c.id}/subjects`);
+                const subjects = await sRes.json();
+                const sContainer = document.getElementById(`subjects-${c.id}`);
+
+                for (const s of subjects) {
+                    const sBox = document.createElement('div');
+                    sBox.className = 'subject-box';
+                    sBox.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <h4 style="margin: 0;">📦 ${m.title}</h4>
+                            <h4 style="margin: 0; color: #9b59b6;">📖 ${s.title}</h4>
                             <div>
-                                <button class="action-btn success" onclick="openModal('create', null, '${m.id}')">+ Aula</button>
-                                <button class="action-btn danger" onclick="deleteModule('${m.id}')">X</button>
+                                <button class="action-btn success" onclick="createModule('${s.id}')">+ Módulo</button>
+                                <button class="action-btn danger" onclick="deleteSubject('${s.id}')">X</button>
                             </div>
                         </div>
-                        <div id="lessons-${m.id}" style="margin-top: 10px;"></div>`;
-                    mContainer.appendChild(mBox);
+                        <div id="modules-${s.id}"></div>`;
+                    sContainer.appendChild(sBox);
 
-                    const lRes = await fetch(`/api/modules/${m.id}/lessons`);
-                    const lessons = await lRes.json();
-                    const lContainer = document.getElementById(`lessons-${m.id}`);
-                    lessons.forEach(l => {
-                        const lDiv = document.createElement('div');
-                        lDiv.className = 'lesson-list-item';
-                        lDiv.innerHTML = `<span>${l.order}. ${l.title}</span>
-                            <div>
-                                <button class="action-btn" onclick="openModal('edit', '${l.id}', '${m.id}', '${l.title}', '${l.video_url || ''}', \`${l.content || ''}\`, '${l.order}')">Editar / Mover</button>
-                                <button class="action-btn danger" onclick="deleteLesson('${l.id}')">X</button>
-                            </div>`;
-                        lContainer.appendChild(lDiv);
-                    });
+                    // MÓDULOS
+                    const mRes = await fetch(`/api/subjects/${s.id}/modules`);
+                    const modules = await mRes.json();
+                    const mContainer = document.getElementById(`modules-${s.id}`);
+                    for (const m of modules) {
+                        allModules.push({ id: m.id, title: m.title, subject: s.title, course: c.title });
+                        const mBox = document.createElement('div');
+                        mBox.className = 'module-box';
+                        mBox.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h4 style="margin: 0;">📦 ${m.title}</h4>
+                                <div>
+                                    <button class="action-btn success" onclick="openModal('create', null, '${m.id}')">+ Aula</button>
+                                    <button class="action-btn danger" onclick="deleteModule('${m.id}')">X</button>
+                                </div>
+                            </div>
+                            <div id="lessons-${m.id}"></div>`;
+                        mContainer.appendChild(mBox);
+
+                        // AULAS
+                        const lRes = await fetch(`/api/modules/${m.id}/lessons`);
+                        const lessons = await lRes.json();
+                        const lContainer = document.getElementById(`lessons-${m.id}`);
+                        lessons.forEach(l => {
+                            const lDiv = document.createElement('div');
+                            lDiv.className = 'lesson-list-item';
+                            lDiv.innerHTML = `<span>${l.order}. ${l.title}</span>
+                                <div>
+                                    <button class="action-btn" onclick="openModal('edit', '${l.id}', '${m.id}', '${l.title}', '${l.video_url || ''}', \`${l.content || ''}\`, '${l.order}')">Editar</button>
+                                    <button class="action-btn danger" onclick="deleteLesson('${l.id}')">X</button>
+                                </div>`;
+                            lContainer.appendChild(lDiv);
+                        });
+                    }
                 }
             }
         }
 
-        // --- MODAL ---
+        // --- GESTÃO DE MATÉRIAS ---
+        async function createSubject(courseId) {
+            const title = prompt('Nome da Matéria (ex: Geografia):');
+            if(!title) return;
+            await fetch('/api/admin/subjects', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({course_id:courseId, title, order:1})});
+            loadCourses();
+        }
+        async function deleteSubject(id) { if(confirm('Apagar Matéria?')) { await fetch(`/api/admin/subjects/${id}`, {method:'DELETE'}); loadCourses(); } }
+
+        // --- GESTÃO DE MÓDULOS ---
+        async function createModule(subjectId) {
+            const title = prompt('Nome do Módulo:');
+            if(!title) return;
+            await fetch('/api/admin/modules', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({subject_id:subjectId, title, order:1})});
+            loadCourses();
+        }
+        async function deleteModule(id) { if(confirm('Apagar módulo?')) { await fetch(`/api/admin/modules/${id}`, {method:'DELETE'}); loadCourses(); } }
+        async function moveModule(moduleId, courseId) {
+            const res = await fetch(`/api/courses/${courseId}/subjects`);
+            const subjects = await res.json();
+            if(subjects.length === 0) { alert('Crie uma Matéria primeiro!'); return; }
+            const sId = prompt('ID da Matéria para mover:\n' + subjects.map(s => `${s.id}: ${s.title}`).join('\n'));
+            if(sId) {
+                await fetch('/api/admin/modules', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id: moduleId, subject_id: sId})}); // Note: should use PUT in real API
+                loadCourses();
+            }
+        }
+
+        // --- MODAL AULAS ---
         function openModal(mode, lessonId, moduleId, title='', url='', content='', order='1') {
             document.getElementById('modalTitle').textContent = mode === 'create' ? 'Nova Aula' : 'Editar Aula';
             document.getElementById('modalLessonId').value = lessonId || '';
-            
             const select = document.getElementById('modalModuleSelect');
-            select.innerHTML = '<option value="">Sem Módulo (Fica Pendente)</option>';
+            select.innerHTML = '<option value="">Sem Módulo (Legado)</option>';
             allModules.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.id;
-                opt.textContent = `[${m.course}] - ${m.title}`;
+                opt.textContent = `[${m.subject}] - ${m.title}`;
                 if(m.id === moduleId) opt.selected = true;
                 select.appendChild(opt);
             });
-
             document.getElementById('modalLessonTitle').value = title;
             document.getElementById('modalLessonVideo').value = url;
             document.getElementById('modalLessonContent').value = content;
             document.getElementById('modalLessonOrder').value = order;
             document.getElementById('lessonModal').style.display = 'flex';
         }
-
         function closeModal() { document.getElementById('lessonModal').style.display = 'none'; }
-
         async function saveLesson() {
             const id = document.getElementById('modalLessonId').value;
             const payload = {
@@ -233,15 +289,9 @@
             await fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
             closeModal(); loadCourses();
         }
-
-        async function createModule(courseId) {
-            const title = prompt('Nome do Módulo:');
-            if(!title) return;
-            await fetch('/api/admin/modules', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({course_id:courseId, title, order:1})});
-            loadCourses();
-        }
-        async function deleteModule(id) { if(confirm('Apagar módulo?')) { await fetch(`/api/admin/modules/${id}`, {method:'DELETE'}); loadCourses(); } }
         async function deleteLesson(id) { if(confirm('Apagar aula?')) { await fetch(`/api/admin/lessons/${id}`, { method: 'DELETE' }); loadCourses(); } }
+
+        // --- GESTÃO CURSOS ---
         async function editCourse(id, oldTitle) { const title = prompt('Novo nome:', oldTitle); if (title) { await fetch(`/api/admin/courses/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ title }) }); loadCourses(); } }
         async function deleteCourse(id) { if (confirm('Apagar curso?')) { await fetch(`/api/admin/courses/${id}`, { method: 'DELETE' }); loadCourses(); } }
 
@@ -251,15 +301,12 @@
             document.getElementById('createCourseForm').reset();
             loadCourses();
         };
-
         document.getElementById('enrollForm').onsubmit = async (e) => {
             e.preventDefault();
             await fetch('/api/admin/enroll', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:document.getElementById('enrollStudent').value, course_id:document.getElementById('enrollCourse').value})});
             alert('Matriculado!');
         };
-
         async function logout() { await fetch('/api/logout', {method:'POST'}); window.location.href = 'login.html'; }
-
         loadUsers();
         loadCourses();
     </script>

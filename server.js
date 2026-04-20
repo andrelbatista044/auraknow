@@ -9,7 +9,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'auraknow-super-secret-key';
 
-// Configurações
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -51,7 +50,7 @@ const isAdmin = async (req, res, next) => {
     }
 };
 
-// Rotas de Autenticação
+// --- AUTH ---
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -65,9 +64,7 @@ app.post('/api/login', async (req, res) => {
         res.json({ success: true, role: user.role, name: user.name });
     } catch (err) { res.status(500).json({ error: 'Erro no servidor' }); }
 });
-
 app.post('/api/logout', (req, res) => { res.clearCookie('token'); res.json({ success: true }); });
-
 app.get('/api/me', verifyToken, async (req, res) => {
     const { data: user } = await supabase.from('users').select('id, name, role, is_active').eq('id', req.user.id).single();
     res.json({ ...user, isActive: user.is_active });
@@ -82,39 +79,42 @@ app.get('/api/courses', verifyToken, async (req, res) => {
     const { data } = await supabase.from('enrollments').select('courses(*)').eq('user_id', req.user.id);
     res.json(data.map(item => item.courses));
 });
-
 app.post('/api/admin/courses', isAdmin, async (req, res) => {
     const { data } = await supabase.from('courses').insert([req.body]).select();
     res.json(data[0]);
 });
-
 app.put('/api/admin/courses/:id', isAdmin, async (req, res) => {
     await supabase.from('courses').update(req.body).eq('id', req.params.id);
     res.json({ success: true });
 });
-
 app.delete('/api/admin/courses/:id', isAdmin, async (req, res) => {
     await supabase.from('courses').delete().eq('id', req.params.id);
     res.json({ success: true });
 });
 
+// --- MATÉRIAS ---
+app.get('/api/courses/:id/subjects', verifyToken, async (req, res) => {
+    const { data } = await supabase.from('subjects').select('*').eq('course_id', req.params.id).order('order', { ascending: true });
+    res.json(data);
+});
+app.post('/api/admin/subjects', isAdmin, async (req, res) => {
+    const { data } = await supabase.from('subjects').insert([req.body]).select();
+    res.json(data[0]);
+});
+app.delete('/api/admin/subjects/:id', isAdmin, async (req, res) => {
+    await supabase.from('subjects').delete().eq('id', req.params.id);
+    res.json({ success: true });
+});
+
 // --- MÓDULOS ---
-app.get('/api/courses/:id/modules', verifyToken, async (req, res) => {
-    const { data } = await supabase.from('modules').select('*').eq('course_id', req.params.id).order('order', { ascending: true });
+app.get('/api/subjects/:id/modules', verifyToken, async (req, res) => {
+    const { data } = await supabase.from('modules').select('*').eq('subject_id', req.params.id).order('order', { ascending: true });
     res.json(data);
 });
-
-// BUSCAR AULAS SEM MÓDULO (Antigas)
-app.get('/api/courses/:id/lessons-no-module', verifyToken, async (req, res) => {
-    const { data } = await supabase.from('lessons').select('*').eq('course_id', req.params.id).is('module_id', null).order('order', { ascending: true });
-    res.json(data);
-});
-
 app.post('/api/admin/modules', isAdmin, async (req, res) => {
     const { data } = await supabase.from('modules').insert([req.body]).select();
     res.json(data[0]);
 });
-
 app.delete('/api/admin/modules/:id', isAdmin, async (req, res) => {
     await supabase.from('modules').delete().eq('id', req.params.id);
     res.json({ success: true });
@@ -125,49 +125,51 @@ app.get('/api/modules/:id/lessons', verifyToken, async (req, res) => {
     const { data } = await supabase.from('lessons').select('*').eq('module_id', req.params.id).order('order', { ascending: true });
     res.json(data);
 });
-
 app.post('/api/admin/lessons', isAdmin, async (req, res) => {
     const { data } = await supabase.from('lessons').insert([req.body]).select();
     res.json(data[0]);
 });
-
 app.put('/api/admin/lessons/:id', isAdmin, async (req, res) => {
     await supabase.from('lessons').update(req.body).eq('id', req.params.id);
     res.json({ success: true });
 });
-
 app.delete('/api/admin/lessons/:id', isAdmin, async (req, res) => {
     await supabase.from('lessons').delete().eq('id', req.params.id);
     res.json({ success: true });
 });
 
-// --- MATRÍCULAS E USUÁRIOS ---
-app.post('/api/admin/enroll', isAdmin, async (req, res) => {
-    await supabase.from('enrollments').insert([req.body]);
-    res.json({ success: true });
+// BUSCAR AULAS/MÓDULOS SEM PAI (Legado)
+app.get('/api/courses/:id/orphan-modules', verifyToken, async (req, res) => {
+    const { data } = await supabase.from('modules').select('*').eq('course_id', req.params.id).is('subject_id', null).order('order', { ascending: true });
+    res.json(data);
+});
+app.get('/api/courses/:id/orphan-lessons', verifyToken, async (req, res) => {
+    const { data } = await supabase.from('lessons').select('*').eq('course_id', req.params.id).is('module_id', null).order('order', { ascending: true });
+    res.json(data);
 });
 
+// --- ADMIN USERS ---
 app.get('/api/admin/users', isAdmin, async (req, res) => {
     const { data } = await supabase.from('users').select('id, name, email, role, is_active').order('created_at', { ascending: false });
     res.json(data.map(u => ({ ...u, isActive: u.is_active })));
 });
-
 app.post('/api/admin/create-user', isAdmin, async (req, res) => {
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
     await supabase.from('users').insert([{ ...req.body, password: hashedPassword }]);
     res.json({ success: true });
 });
-
 app.post('/api/admin/toggle-status', isAdmin, async (req, res) => {
     const { data: user } = await supabase.from('users').select('is_active').eq('id', req.body.userId).single();
     await supabase.from('users').update({ is_active: !user.is_active }).eq('id', req.body.userId);
     res.json({ success: true });
 });
-
 app.delete('/api/admin/delete-user', isAdmin, async (req, res) => {
-    if (req.body.userId === req.user.id) return res.status(400).json({ error: 'Nao pode apagar a si mesmo' });
     await supabase.from('users').delete().eq('id', req.body.userId);
     res.json({ success: true });
 });
+app.post('/api/admin/enroll', isAdmin, async (req, res) => {
+    await supabase.from('enrollments').insert([req.body]);
+    res.json({ success: true });
+});
 
-app.listen(PORT, () => console.log(`🚀 AuraKnow LMS v2 na porta ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 AuraKnow LMS v3 (Materias) na porta ${PORT}`));
