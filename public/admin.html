@@ -160,7 +160,15 @@
                 courseDiv.className = 'glass';
                 courseDiv.style.padding = '20px';
                 courseDiv.style.marginBottom = '20px';
-                courseDiv.innerHTML = `<h4>${c.title}</h4><div id="lessons-${c.id}" style="margin-top: 15px;"></div>`;
+                courseDiv.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">
+                        <h4 style="margin: 0;">${c.title}</h4>
+                        <div>
+                            <button class="action-btn" onclick="editCourse('${c.id}', '${c.title}')">Renomear</button>
+                            <button class="action-btn danger" onclick="deleteCourse('${c.id}')">Apagar Curso</button>
+                        </div>
+                    </div>
+                    <div id="lessons-${c.id}" style="margin-top: 15px;"></div>`;
                 manageList.appendChild(courseDiv);
 
                 lessonSelect.innerHTML += `<option value="${c.id}">${c.title}</option>`;
@@ -180,6 +188,23 @@
                     lContainer.appendChild(lDiv);
                 });
             }
+        }
+
+        async function editCourse(id, oldTitle) {
+            const title = prompt('Novo nome para o curso:', oldTitle);
+            if (!title) return;
+            await fetch(`/api/admin/courses/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ title })
+            });
+            loadCourses();
+        }
+
+        async function deleteCourse(id) {
+            if (!confirm('ATENÇÃO: Isso apagará o curso e TODAS as aulas vinculadas a ele. Continuar?')) return;
+            await fetch(`/api/admin/courses/${id}`, { method: 'DELETE' });
+            loadCourses();
         }
 
         // --- LÓGICA DO MODAL DE EDIÇÃO ---

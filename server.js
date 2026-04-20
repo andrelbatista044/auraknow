@@ -96,6 +96,21 @@ app.post('/api/admin/courses', isAdmin, async (req, res) => {
     res.json(data[0]);
 });
 
+// Editar Curso (Admin)
+app.put('/api/admin/courses/:id', isAdmin, async (req, res) => {
+    const { title, description, thumbnail } = req.body;
+    const { error } = await supabase.from('courses').update({ title, description, thumbnail }).eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+});
+
+// Apagar Curso (Admin)
+app.delete('/api/admin/courses/:id', isAdmin, async (req, res) => {
+    const { error } = await supabase.from('courses').delete().eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+});
+
 // Criar Aula (Admin)
 app.post('/api/admin/lessons', isAdmin, async (req, res) => {
     const { course_id, title, video_url, content, order } = req.body;
