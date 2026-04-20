@@ -53,8 +53,10 @@
             border-radius: 20px;
             font-size: 0.8rem;
         }
-        .active { background: #2ecc71; color: white; }
-        .blocked { background: #e74c3c; color: white; }
+        /* Classes de status corrigidas para evitar conflito */
+        .status-active { background: #2ecc71; color: white; }
+        .status-blocked { background: #e74c3c; color: white; }
+        
         .action-btn {
             background: none;
             border: 1px solid var(--primary);
@@ -203,12 +205,12 @@
             users.forEach(user => {
                 if (user.email === 'admin@auraknow.com') return;
                 
-                // Add to table
                 const tr = document.createElement('tr');
+                // USANDO AS NOVAS CLASSES DE STATUS AQUI
                 tr.innerHTML = `
                     <td>${user.name}</td>
                     <td>${user.email}</td>
-                    <td><span class="status-badge ${user.isActive ? 'active' : 'blocked'}">${user.isActive ? 'Ativo' : 'Bloqueado'}</span></td>
+                    <td><span class="status-badge ${user.isActive ? 'status-active' : 'status-blocked'}">${user.isActive ? 'Ativo' : 'Bloqueado'}</span></td>
                     <td>
                         <button class="action-btn" onclick="toggleStatus('${user.id}')">${user.isActive ? 'Bloquear' : 'Ativar'}</button>
                         <button class="action-btn" onclick="resetPassword('${user.id}')">Senha</button>
@@ -217,7 +219,6 @@
                 `;
                 list.appendChild(tr);
 
-                // Add to enrollment select
                 const opt = document.createElement('option');
                 opt.value = user.id;
                 opt.textContent = user.name;
@@ -259,7 +260,6 @@
             loadUsers();
         }
 
-        // --- GESTÃO DE CURSOS & AULAS ---
         async function loadCourses() {
             const res = await fetch('/api/courses');
             const courses = await res.json();
