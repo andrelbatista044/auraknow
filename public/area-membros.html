@@ -158,7 +158,15 @@
             document.getElementById('emptyView').style.display = 'none';
             document.getElementById('lessonTitle').textContent = title;
             document.getElementById('lessonContent').innerHTML = (content || '').replace(/\n/g, '<br>');
-            document.getElementById('videoPlayer').src = url ? url.replace('watch?v=', 'embed/') : '';
+            
+            const videoContainer = document.querySelector('.video-container');
+            if (url && url.trim() !== '') {
+                videoContainer.style.display = 'block';
+                document.getElementById('videoPlayer').src = url.replace('watch?v=', 'embed/');
+            } else {
+                videoContainer.style.display = 'none';
+                document.getElementById('videoPlayer').src = '';
+            }
         }
 
         function startQuiz(quiz) {
