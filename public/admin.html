@@ -63,7 +63,7 @@
         <!-- SEÇÃO ALUNOS -->
         <div id="usersSection" class="admin-section active">
             <div class="admin-grid">
-                <div class="glass" style="padding: 40px;"><h3>Novo Aluno</h3><form id="createUserForm"><input type="text" id="newName" placeholder="Nome" required><input type="email" id="newEmail" placeholder="E-mail" required><input type="password" id="newPassword" placeholder="Senha" required><button type="submit" class="btn-primary" style="width: 100%;">Criar</button></form></div>
+                <div class="glass" style="padding: 40px;"><h3>Novo Aluno</h3><form id="createUserForm"><input type="text" id="newName" placeholder="Nome" required><input type="email" id="newEmail" placeholder="E-mail" required><input type="password" id="newPassword" placeholder="Senha" required><select id="newRole" required><option value="student">Aluno</option><option value="admin">Administrador</option></select><button type="submit" class="btn-primary" style="width: 100%;">Criar</button></form></div>
                 <div class="glass" style="padding: 40px;"><h3>Alunos Cadastrados</h3><table><thead><tr><th>Nome</th><th>Status</th><th>Ações</th></tr></thead><tbody id="userList"></tbody></table></div>
             </div>
         </div>
@@ -166,10 +166,14 @@
                     const mCont = document.getElementById(`modules-${s.id}`);
                     for (const m of modules) {
                         cachedModules.push({ id: m.id, title: m.title, subject: s.title });
+                        const qRes = await fetch(`/api/modules/${m.id}/quiz`);
+                        const quiz = await qRes.json();
+                        const quizIndicator = quiz ? `<span style="background: var(--primary); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-left: 10px;">📝 Prova: ${quiz.title}</span>` : '';
+                        
                         const mDiv = document.createElement('div');
                         mDiv.className = 'module-box';
-                        mDiv.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center;"><strong>📦 ${m.title}</strong>
-                                <div><button class="action-btn info" onclick="openQuizModal('${m.id}')">+ Prova</button><button class="action-btn success" onclick="openLessonModal('create', null, '${m.id}')">+ Aula</button><button class="action-btn danger" onclick="deleteModule('${m.id}')">X</button></div></div><div id="lessons-${m.id}"></div>`;
+                        mDiv.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center;"><div><strong>📦 ${m.title}</strong>${quizIndicator}</div>
+                                <div><button class="action-btn info" onclick="openQuizModal('${m.id}')">${quiz ? 'Editar Prova' : '+ Prova'}</button><button class="action-btn success" onclick="openLessonModal('create', null, '${m.id}')">+ Aula</button><button class="action-btn danger" onclick="deleteModule('${m.id}')">X</button></div></div><div id="lessons-${m.id}"></div>`;
                         mCont.appendChild(mDiv);
 
                         const lRes = await fetch(`/api/modules/${m.id}/lessons`);
@@ -209,11 +213,36 @@
                 questions.push({ text: card.querySelector('.q-text').value, options: options, correct_option: parseInt(card.querySelector('.q-correct').value), order: index + 1 });
             });
             await fetch('/api/admin/quizzes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ module_id: document.getElementById('quizModuleId').value, title: document.getElementById('quizTitle').value, passing_score: parseInt(document.getElementById('quizPassingScore').value), questions: questions }) });
-            alert('Prova Criada!'); closeModals();
+            alert('Prova Criada/Atualizada!'); 
+            closeModals();
+            loadCourses();
         }
 
         function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
         async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = 'login.html'; }
+        document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('newName').value;
+            const email = document.getElementById('newEmail').value;
+            const password = document.getElementById('newPassword').value;
+            const role = document.getElementById('newRole').value;
+            
+            const res = await fetch('/api/admin/create-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password, role })
+            });
+            
+            if (res.ok) {
+                alert('Usuário criado com sucesso!');
+                document.getElementById('createUserForm').reset();
+                loadUsers();
+            } else {
+                const data = await res.json();
+                alert('Erro ao criar usuário: ' + (data.error || 'Erro desconhecido'));
+            }
+        });
+
         loadUsers(); loadCourses();
     </script>
 </body>

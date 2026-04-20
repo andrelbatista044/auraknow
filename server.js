@@ -61,8 +61,12 @@ app.get('/api/courses', verifyToken, async (req, res) => {
         const { data } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
         return res.json(data);
     }
-    const { data } = await supabase.from('enrollments').select('courses(*)').eq('user_id', req.user.id);
-    res.json(data.map(i => i.courses));
+    const { data, error } = await supabase.from('enrollments').select('courses(*)').eq('user_id', req.user.id);
+    if (error) {
+        console.error('Erro ao buscar cursos do aluno:', error);
+        return res.json([]);
+    }
+    res.json((data || []).map(i => i.courses).filter(Boolean));
 });
 app.post('/api/admin/courses', isAdmin, async (req, res) => {
     const { data } = await supabase.from('courses').insert([req.body]).select();
