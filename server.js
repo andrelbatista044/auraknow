@@ -333,13 +333,16 @@ app.delete('/api/admin/teacher-assignments/:id', isAdmin, async (req, res) => {
 // --- DEBUG TEMPORÁRIO ---
 app.get('/api/debug/my-courses', verifyToken, async (req, res) => {
     const userId = req.user.id;
+    const { data: user } = await supabase.from('users').select('role').eq('id', userId).single();
     const { data: enrollments } = await supabase.from('enrollments').select('*').eq('user_id', userId);
-    const { data: allEnrollments } = await supabase.from('enrollments').select('*').limit(10);
+    const { data: assignments } = await supabase.from('teacher_assignments').select('*, courses(title)').eq('teacher_id', userId);
+    
     res.json({ 
         userId, 
-        userRole: req.user.role,
+        tokenRole: req.user.role,
+        dbRole: user ? user.role : 'not_found',
         myEnrollments: enrollments, 
-        allEnrollmentsSample: allEnrollments
+        myTeacherAssignments: assignments
     });
 });
 

@@ -373,10 +373,23 @@
         async function loadCourses() {
             const res = await fetch('/api/courses');
             const courses = await res.json();
+            
+            if (!Array.isArray(courses)) {
+                console.error('Erro ao carregar cursos:', courses);
+                document.getElementById('courseManagementList').innerHTML = '<p style="color:red;">Erro ao carregar cursos. Verifique sua conexão ou permissões.</p>';
+                return;
+            }
+
             const manageList = document.getElementById('courseManagementList');
             const enrollCourse = document.getElementById('enrollCourse');
-            manageList.innerHTML = ''; enrollCourse.innerHTML = '<option value="">Selecionar Curso</option>';
+            manageList.innerHTML = ''; 
+            if (enrollCourse) enrollCourse.innerHTML = '<option value="">Selecionar Curso</option>';
             cachedSubjects = []; cachedModules = [];
+
+            if (courses.length === 0) {
+                manageList.innerHTML = '<p style="color:var(--text-dim); text-align:center; padding:20px;">Nenhum curso atribuído a você ainda.</p>';
+                return;
+            }
 
             for (const c of courses) {
                 const courseDiv = document.createElement('div');
