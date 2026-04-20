@@ -185,19 +185,28 @@ app.get('/api/modules/:id/quiz', verifyToken, async (req, res) => {
 
 app.post('/api/admin/quizzes', isAdmin, async (req, res) => {
     const { module_id, title, passing_score, order, questions, due_date } = req.body;
-    const { data: quiz } = await supabase.from('quizzes').insert([{ 
+    
+    // UPSERT no Quiz (tenta atualizar pelo module_id ou insere novo)
+    const { data: quiz, error: qErr } = await supabase.from('quizzes').upsert({ 
         module_id, 
         title, 
         passing_score, 
         order: order || 99,
         due_date: due_date || null
-    }]).select().single();
+    }, { onConflict: 'module_id' }).select().single();
+
+    if (qErr) return res.status(400).json({ error: qErr.message });
+
     if (questions && questions.length > 0) {
+        // Se estiver editando, removemos as questões antigas para colocar as novas
+        await supabase.from('questions').delete().eq('quiz_id', quiz.id);
+        
         const questionsWithId = questions.map(q => ({ ...q, quiz_id: quiz.id }));
         await supabase.from('questions').insert(questionsWithId);
     }
 
-    // Disparar notificação
+    // Disparar notificação (Apenas se for novo? Por simplicidade deixaremos sempre por enquanto)
+    // ... (restante do código de notificação permanece o mesmo)
     const { data: mod } = await supabase.from('modules').select('subject_id').eq('id', module_id).single();
     if (mod && mod.subject_id) {
         const { data: sub } = await supabase.from('subjects').select('course_id').eq('id', mod.subject_id).single();
@@ -206,8 +215,8 @@ app.post('/api/admin/quizzes', isAdmin, async (req, res) => {
             if (enrollments && enrollments.length > 0) {
                 const notifs = enrollments.map(e => ({
                     user_id: e.user_id,
-                    title: 'Nova Prova Disponível',
-                    message: `A avaliação "${title}" está disponível.`,
+                    title: 'Avaliação Atualizada',
+                    message: `A prova "${title}" foi atualizada ou disponibilizada.`,
                     type: 'exam'
                 }));
                 await supabase.from('notifications').insert(notifs);

@@ -356,26 +356,62 @@
         }
 
         // --- GESTÃO DE PROVAS ---
-        function openQuizModal(moduleId, quizId) {
+        async function openQuizModal(moduleId, quizId) {
             document.getElementById('quizModuleId').value = moduleId;
             document.getElementById('quizTitle').value = '';
             document.getElementById('quizOrder').value = '';
             document.getElementById('quizPassingScore').value = '';
             document.getElementById('quizDueDate').value = '';
             document.getElementById('questionsContainer').innerHTML = '';
-            addQuestion();
+            
+            if (quizId) {
+                // Modo Edição: Buscar dados completos
+                const res = await fetch(`/api/modules/${moduleId}/quiz`);
+                const quiz = await res.json();
+                if (quiz) {
+                    document.getElementById('quizTitle').value = quiz.title;
+                    document.getElementById('quizOrder').value = quiz.order || '';
+                    document.getElementById('quizPassingScore').value = quiz.passing_score;
+                    if (quiz.due_date) {
+                        // Formatar para o input datetime-local (YYYY-MM-DDTHH:mm)
+                        const dt = new Date(quiz.due_date);
+                        const formatted = dt.toISOString().slice(0, 16);
+                        document.getElementById('quizDueDate').value = formatted;
+                    }
+                    if (quiz.questions && quiz.questions.length > 0) {
+                        quiz.questions.forEach(q => addQuestion(q));
+                    } else {
+                        addQuestion();
+                    }
+                }
+            } else {
+                addQuestion();
+            }
             document.getElementById('quizModal').style.display = 'flex';
         }
-        function addQuestion() {
+        function addQuestion(existingData = null) {
             const container = document.getElementById('questionsContainer');
             const qCount = container.children.length + 1;
             const qDiv = document.createElement('div');
             qDiv.className = 'question-card';
+            
+            const qText = existingData ? existingData.text : '';
+            const opts = existingData ? existingData.options : ['', '', '', ''];
+            const correct = existingData ? existingData.correct_option : 0;
+
             qDiv.innerHTML = `<h4>Questão ${qCount}</h4>
-                <input type="text" placeholder="Enunciado" class="q-text">
-                <input type="text" placeholder="Opção 1" class="q-opt"><input type="text" placeholder="Opção 2" class="q-opt">
-                <input type="text" placeholder="Opção 3" class="q-opt"><input type="text" placeholder="Opção 4" class="q-opt">
-                <select class="q-correct"><option value="0">Opção 1 correta</option><option value="1">Opção 2 correta</option><option value="2">Opção 3 correta</option><option value="3">Opção 4 correta</option></select>`;
+                <input type="text" placeholder="Enunciado" class="q-text" value="${qText}">
+                <input type="text" placeholder="Opção 1" class="q-opt" value="${opts[0] || ''}">
+                <input type="text" placeholder="Opção 2" class="q-opt" value="${opts[1] || ''}">
+                <input type="text" placeholder="Opção 3" class="q-opt" value="${opts[2] || ''}">
+                <input type="text" placeholder="Opção 4" class="q-opt" value="${opts[3] || ''}">
+                <select class="q-correct">
+                    <option value="0" ${correct == 0 ? 'selected' : ''}>Opção 1 correta</option>
+                    <option value="1" ${correct == 1 ? 'selected' : ''}>Opção 2 correta</option>
+                    <option value="2" ${correct == 2 ? 'selected' : ''}>Opção 3 correta</option>
+                    <option value="3" ${correct == 3 ? 'selected' : ''}>Opção 4 correta</option>
+                </select>
+                <button class="action-btn danger" style="margin-top: 10px;" onclick="this.parentElement.remove()">Remover Questão</button>`;
             container.appendChild(qDiv);
         }
         async function saveQuiz() {
