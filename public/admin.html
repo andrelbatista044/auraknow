@@ -131,8 +131,11 @@
                     <td>${user.email}</td>
                     <td><span class="status-badge ${user.isActive ? 'active' : 'blocked'}">${user.isActive ? 'Ativo' : 'Bloqueado'}</span></td>
                     <td>
-                        <button class="action-btn" onclick="toggleStatus(${user.id})">
+                        <button class="action-btn" onclick="toggleStatus('${user.id}')" style="background: ${user.isActive ? 'rgba(231, 76, 60, 0.1)' : 'rgba(46, 204, 113, 0.1)'}">
                             ${user.isActive ? 'Bloquear' : 'Desbloquear'}
+                        </button>
+                        <button class="action-btn" onclick="resetPassword('${user.id}')" style="margin-left: 5px;">
+                            Nova Senha
                         </button>
                     </td>
                 `;
@@ -172,6 +175,23 @@
                 body: JSON.stringify({ userId })
             });
             loadUsers();
+        }
+
+        async function resetPassword(userId) {
+            const newPassword = prompt('Digite a nova senha para este aluno:');
+            if (!newPassword) return;
+
+            const res = await fetch('/api/admin/reset-password', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId, newPassword })
+            });
+
+            if (res.ok) {
+                alert('Senha alterada com sucesso!');
+            } else {
+                alert('Erro ao alterar senha.');
+            }
         }
 
         async function logout() {

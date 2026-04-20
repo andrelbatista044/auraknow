@@ -22,6 +22,14 @@ const verifyToken = async (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // CHECAGEM DE BLOQUEIO OBRIGATÓRIA EM CADA REQUISIÇÃO
+        const { data: user } = await supabase.from('users').select('is_active').eq('id', decoded.id).single();
+        if (!user || !user.is_active) {
+            res.clearCookie('token');
+            return res.status(403).json({ error: 'Acesso bloqueado' });
+        }
+
         req.user = decoded;
         next();
     } catch (err) {
@@ -36,7 +44,9 @@ const isAdmin = async (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        if (decoded.role === 'admin') {
+        const { data: user } = await supabase.from('users').select('role, is_active').eq('id', decoded.id).single();
+        
+        if (user && user.role === 'admin' && user.is_active) {
             req.user = decoded;
             return next();
         }
@@ -59,19 +69,17 @@ app.post('/api/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ error: 'Senha incorreta' });
 
-        // Gerar Token JWT
         const token = jwt.sign(
             { id: user.id, role: user.role, name: user.name },
             JWT_SECRET,
             { expiresIn: '7d' }
         );
 
-        // Salvar no Cookie
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 dias
+            secure: true, // Forçado para Vercel (HTTPS)
+            sameSite: 'none', // Necessário para alguns navegadores em domínios diferentes
+            maxAge: 7 * 24 * 60 * 60 * 1000 
         });
         
         res.json({ success: true, role: user.role, name: user.name });
@@ -86,12 +94,7 @@ app.post('/api/logout', (req, res) => {
 });
 
 app.get('/api/me', verifyToken, async (req, res) => {
-    // Re-verifica no banco para garantir que não foi bloqueado recentemente
     const { data: user } = await supabase.from('users').select('id, name, role, is_active').eq('id', req.user.id).single();
-    if (!user || !user.is_active) {
-        res.clearCookie('token');
-        return res.status(403).json({ error: 'Acesso bloqueado' });
-    }
     res.json({ ...user, isActive: user.is_active });
 });
 
@@ -126,6 +129,19 @@ app.post('/api/admin/toggle-status', isAdmin, async (req, res) => {
     }
 });
 
+// NOVA ROTA: RESET DE SENHA PELO ADMIN
+app.post('/api/admin/reset-password', isAdmin, async (req, res) => {
+    const { userId, newPassword } = req.body;
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const { error } = await supabase.from('users').update({ password: hashedPassword }).eq('id', userId);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao redefinir senha' });
+    }
+});
+
 app.listen(PORT, () => {
-    console.log(`🚀 AuraKnow JWT Edition rodando na porta ${PORT}`);
+    console.log(`🚀 AuraKnow Vercel Edition rodando na porta ${PORT}`);
 });
