@@ -211,7 +211,7 @@
         <!-- SEÇÃO CONTEÚDO -->
         <div id="coursesSection" class="admin-section">
             <div class="admin-grid">
-                <div class="glass" style="padding: 40px;"><h3>Novo Curso</h3><form id="createCourseForm"><input type="text" id="courseTitleInput" placeholder="Nome do Curso" required><button type="submit" class="btn-primary" style="width: 100%;">Criar</button></form><hr style="opacity: 0.1; margin: 40px 0;"><h3>Matrícula</h3><form id="enrollForm"><select id="enrollStudent" required></select><select id="enrollCourse" required></select><button type="submit" class="btn-primary" style="width: 100%;">Matricular</button></form></div>
+                <div id="courseToolsCard" class="glass" style="padding: 40px;"><h3>Novo Curso</h3><form id="createCourseForm"><input type="text" id="courseTitleInput" placeholder="Nome do Curso" required><button type="submit" class="btn-primary" style="width: 100%;">Criar</button></form><hr style="opacity: 0.1; margin: 40px 0;"><h3>Matrícula</h3><form id="enrollForm"><select id="enrollStudent" required></select><select id="enrollCourse" required></select><button type="submit" class="btn-primary" style="width: 100%;">Matricular</button></form></div>
                 <div class="glass" style="padding: 40px;"><h3>Gestão de Conteúdo</h3><div id="courseManagementList"></div></div>
             </div>
         </div>
@@ -308,6 +308,7 @@
             } else if (role === 'teacher') {
                 tabs[0].style.display = 'none'; // Alunos
                 tabs[3].style.display = 'none'; // Financeiro
+                document.getElementById('courseToolsCard').style.display = 'none'; // Esconde Novo Curso e Matrícula
                 showSection('courses');
             }
         }
