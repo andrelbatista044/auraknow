@@ -120,6 +120,27 @@
         </div>
     </div>
 
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content glass">
+            <h3>Editar Aluno</h3>
+            <form id="editUserForm">
+                <input type="hidden" id="editUserId">
+                <input type="text" id="editUserRegistration" placeholder="Matrícula / RM">
+                <input type="text" id="editUserName" placeholder="Nome" required>
+                <input type="email" id="editUserEmail" placeholder="E-mail" required>
+                <select id="editUserRole" required>
+                    <option value="student">Aluno</option>
+                    <option value="admin">Administrador</option>
+                </select>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Salvar</button>
+                    <button type="button" class="btn-secondary" onclick="closeEditUserModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL EDITAR FINANCEIRO -->
     <div id="financeModal" class="modal">
         <div class="modal-content glass" style="width: 500px;">
@@ -241,6 +262,7 @@
         async function loadUsers() {
             const res = await fetch('/api/admin/users');
             const users = await res.json();
+            window.allUsers = users;
             const list = document.getElementById('userList');
             const enrollStudent = document.getElementById('enrollStudent');
             const financeStudent = document.getElementById('financeStudent');
@@ -250,8 +272,14 @@
                 if (u.email === 'admin@auraknow.com') return;
                 const regBadge = u.registration ? `<span style="color:var(--text-dim); font-size:0.8rem;">#${u.registration}</span> ` : '';
                 const regStr = u.registration ? `[${u.registration}] ` : '';
+                const statusLabel = u.isActive ? 'Bloquear' : 'Desbloquear';
+                
                 list.innerHTML += `<tr><td>${u.registration || '-'}</td><td>${u.name}</td><td><span class="status-badge ${u.isActive?'status-active':'status-blocked'}">${u.isActive?'Ativo':'Bloq'}</span></td>
-                <td><button class="action-btn" onclick="toggleStatus('${u.id}')">Status</button><button class="action-btn danger" onclick="deleteUser('${u.id}')">X</button></td></tr>`;
+                <td>
+                    <button class="action-btn" onclick="openEditUserModal('${u.id}')">Editar</button>
+                    <button class="action-btn" onclick="toggleStatus('${u.id}')">${statusLabel}</button>
+                    <button class="action-btn danger" onclick="deleteUser('${u.id}')">X</button>
+                </td></tr>`;
                 enrollStudent.innerHTML += `<option value="${u.id}">${regStr}${u.name}</option>`;
                 if (financeStudent) financeStudent.innerHTML += `<option value="${u.id}">${regStr}${u.name}</option>`;
             });
@@ -376,14 +404,43 @@
             });
             
             if (res.ok) {
-                alert('Usuário criado com sucesso!');
                 document.getElementById('createUserForm').reset();
                 loadUsers();
             } else {
-                const data = await res.json();
-                alert('Erro ao criar usuário: ' + (data.error || 'Erro desconhecido'));
+                alert('Erro ao criar usuário');
             }
         });
+        
+        function openEditUserModal(id) {
+            const u = window.allUsers.find(x => x.id === id);
+            if(!u) return;
+            document.getElementById('editUserId').value = u.id;
+            document.getElementById('editUserRegistration').value = u.registration || '';
+            document.getElementById('editUserName').value = u.name;
+            document.getElementById('editUserEmail').value = u.email;
+            document.getElementById('editUserRole').value = u.role;
+            document.getElementById('editUserModal').style.display = 'flex';
+        }
+        function closeEditUserModal() { document.getElementById('editUserModal').style.display = 'none'; }
+        
+        document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editUserId').value;
+            const registration = document.getElementById('editUserRegistration').value;
+            const name = document.getElementById('editUserName').value;
+            const email = document.getElementById('editUserEmail').value;
+            const role = document.getElementById('editUserRole').value;
+            
+            await fetch(`/api/admin/users/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ registration, name, email, role })
+            });
+            closeEditUserModal();
+            loadUsers();
+        });
+
+        async function toggleStatus(userId) { await fetch('/api/admin/toggle-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId }) }); loadUsers(); }
 
         // --- MATRÍCULA ---
         document.getElementById('enrollForm').addEventListener('submit', async (e) => {

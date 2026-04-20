@@ -246,6 +246,11 @@ app.post('/api/admin/create-user', isAdmin, async (req, res) => {
     await supabase.from('users').insert([{ ...req.body, password: hashedPassword }]);
     res.json({ success: true });
 });
+app.put('/api/admin/users/:id', isAdmin, async (req, res) => {
+    const { name, email, role, registration } = req.body;
+    await supabase.from('users').update({ name, email, role, registration }).eq('id', req.params.id);
+    res.json({ success: true });
+});
 app.post('/api/admin/toggle-status', isAdmin, async (req, res) => {
     const { data: user } = await supabase.from('users').select('is_active').eq('id', req.body.userId).single();
     await supabase.from('users').update({ is_active: !user.is_active }).eq('id', req.body.userId);
