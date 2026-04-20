@@ -100,9 +100,19 @@
     <script>
         // Verifica se é admin
         async function checkAdmin() {
-            const res = await fetch('/api/me');
-            const user = await res.json();
-            if (user.role !== 'admin') window.location.href = 'login.html';
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                const user = await res.json();
+                if (user.role !== 'admin') {
+                    window.location.href = 'login.html';
+                }
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
         }
         checkAdmin();
 

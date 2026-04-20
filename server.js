@@ -1,29 +1,50 @@
 const express = require('express');
-const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const { supabase } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'auraknow-super-secret-key';
 
 // Configurações
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({
-    secret: 'auraknow-vercel-secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false } 
-}));
 
-// Middlewares
+// Middleware de Autenticação via JWT
+const verifyToken = async (req, res, next) => {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ error: 'Não autorizado' });
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) {
+        res.clearCookie('token');
+        return res.status(401).json({ error: 'Sessão inválida' });
+    }
+};
+
 const isAdmin = async (req, res, next) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Não autorizado' });
-    const { data: user } = await supabase.from('users').select('role').eq('id', req.session.userId).single();
-    if (user && user.role === 'admin') return next();
-    res.status(403).json({ error: 'Acesso negado' });
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ error: 'Não autorizado' });
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded.role === 'admin') {
+            req.user = decoded;
+            return next();
+        }
+        res.status(403).json({ error: 'Acesso negado' });
+    } catch (err) {
+        res.clearCookie('token');
+        res.status(401).json({ error: 'Sessão inválida' });
+    }
 };
 
 // Rotas de Autenticação
@@ -38,8 +59,20 @@ app.post('/api/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ error: 'Senha incorreta' });
 
-        req.session.userId = user.id;
-        req.session.userRole = user.role;
+        // Gerar Token JWT
+        const token = jwt.sign(
+            { id: user.id, role: user.role, name: user.name },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        // Salvar no Cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 dias
+        });
         
         res.json({ success: true, role: user.role, name: user.name });
     } catch (err) {
@@ -48,20 +81,23 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => {
-    req.session.destroy();
+    res.clearCookie('token');
     res.json({ success: true });
 });
 
-app.get('/api/me', async (req, res) => {
-    if (!req.session.userId) return res.status(401).json({ error: 'Offline' });
-    const { data: user } = await supabase.from('users').select('id, name, role, is_active').eq('id', req.session.userId).single();
+app.get('/api/me', verifyToken, async (req, res) => {
+    // Re-verifica no banco para garantir que não foi bloqueado recentemente
+    const { data: user } = await supabase.from('users').select('id, name, role, is_active').eq('id', req.user.id).single();
+    if (!user || !user.is_active) {
+        res.clearCookie('token');
+        return res.status(403).json({ error: 'Acesso bloqueado' });
+    }
     res.json({ ...user, isActive: user.is_active });
 });
 
 // Rotas Administrativas
 app.get('/api/admin/users', isAdmin, async (req, res) => {
     const { data: users } = await supabase.from('users').select('id, name, email, role, is_active').order('created_at', { ascending: false });
-    // Mapear is_active para isActive para manter compatibilidade com o frontend atual
     const mappedUsers = users.map(u => ({ ...u, isActive: u.is_active }));
     res.json(mappedUsers);
 });
@@ -91,5 +127,5 @@ app.post('/api/admin/toggle-status', isAdmin, async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 AuraKnow Vercel Edition rodando na porta ${PORT}`);
+    console.log(`🚀 AuraKnow JWT Edition rodando na porta ${PORT}`);
 });
