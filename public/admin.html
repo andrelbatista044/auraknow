@@ -21,10 +21,31 @@
         .action-btn.danger { border-color: #e74c3c; color: #e74c3c; }
         input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 8px; font-size: 1rem; }
         .lesson-list-item { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Modal Style */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: var(--bg-dark); border: 1px solid var(--glass-border); padding: 40px; border-radius: 24px; width: 600px; max-width: 90%; }
     </style>
 </head>
 <body>
     <div class="bg-mesh"></div>
+
+    <!-- MODAL DE EDIÇÃO -->
+    <div id="editModal" class="modal">
+        <div class="modal-content glass">
+            <h3>Editar Aula</h3>
+            <input type="hidden" id="editLessonId">
+            <input type="text" id="editLessonTitle" placeholder="Título">
+            <input type="text" id="editLessonVideo" placeholder="URL do Vídeo">
+            <textarea id="editLessonContent" placeholder="Conteúdo da Aula" style="height: 200px;"></textarea>
+            <input type="number" id="editLessonOrder" placeholder="Ordem">
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn-primary" onclick="saveLesson()" style="flex: 1;">Salvar Alterações</button>
+                <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <header class="container"><nav><a href="index.html" class="logo">Aura<span>Know</span> Admin</a><button onclick="logout()" class="btn-secondary">Sair</button></nav></header>
 
     <main class="container">
@@ -33,7 +54,6 @@
             <button class="tab-btn" onclick="showSection('courses')">Cursos & Aulas</button>
         </div>
 
-        <!-- SEÇÃO ALUNOS -->
         <div id="usersSection" class="admin-section active">
             <div class="admin-grid">
                 <div class="glass" style="padding: 40px;">
@@ -53,11 +73,10 @@
             </div>
         </div>
 
-        <!-- SEÇÃO CURSOS -->
         <div id="coursesSection" class="admin-section">
             <div class="admin-grid">
                 <div class="glass" style="padding: 40px;">
-                    <h3>Criar/Adicionar</h3>
+                    <h3>Criar Conteúdo</h3>
                     <form id="createCourseForm">
                         <input type="text" id="courseTitle" placeholder="Novo Curso" required>
                         <button type="submit" class="btn-primary" style="width: 100%; margin-bottom: 30px;">Criar Curso</button>
@@ -73,10 +92,8 @@
                     </form>
                 </div>
                 <div class="glass" style="padding: 40px;">
-                    <h3>Gestão de Conteúdo</h3>
-                    <div id="courseManagementList">
-                        <!-- Cursos e Aulas serão injetados aqui -->
-                    </div>
+                    <h3>Gestão de Cursos e Aulas</h3>
+                    <div id="courseManagementList"></div>
                     <hr style="opacity: 0.1; margin: 40px 0;">
                     <h3>Matrícula</h3>
                     <form id="enrollForm" style="display: flex; gap: 10px;">
@@ -103,7 +120,6 @@
         }
         checkAdmin();
 
-        // --- USUÁRIOS ---
         async function loadUsers() {
             const res = await fetch('/api/admin/users');
             const users = await res.json();
@@ -128,7 +144,6 @@
             if(res.ok) { alert('Criado!'); loadUsers(); }
         };
 
-        // --- CURSOS E AULAS ---
         async function loadCourses() {
             const res = await fetch('/api/courses');
             const courses = await res.json();
@@ -151,39 +166,53 @@
                 lessonSelect.innerHTML += `<option value="${c.id}">${c.title}</option>`;
                 enrollCourse.innerHTML += `<option value="${c.id}">${c.title}</option>`;
 
-                // Carregar aulas do curso
                 const lRes = await fetch(`/api/courses/${c.id}/lessons`);
                 const lessons = await lRes.json();
                 const lContainer = document.getElementById(`lessons-${c.id}`);
                 lessons.forEach(l => {
-                    lContainer.innerHTML += `<div class="lesson-list-item">
-                        <span>${l.order}. ${l.title}</span>
+                    const lDiv = document.createElement('div');
+                    lDiv.className = 'lesson-list-item';
+                    lDiv.innerHTML = `<span>${l.order}. ${l.title}</span>
                         <div>
-                            <button class="action-btn" onclick="editLesson('${l.id}', '${l.title}', '${l.video_url || ''}', '${l.order}')">Editar</button>
+                            <button class="action-btn" onclick="openEditModal('${l.id}', '${l.title}', '${l.video_url || ''}', \`${l.content || ''}\`, '${l.order}')">Editar</button>
                             <button class="action-btn danger" onclick="deleteLesson('${l.id}')">X</button>
-                        </div>
-                    </div>`;
+                        </div>`;
+                    lContainer.appendChild(lDiv);
                 });
             }
+        }
+
+        // --- LÓGICA DO MODAL DE EDIÇÃO ---
+        function openEditModal(id, title, url, content, order) {
+            document.getElementById('editLessonId').value = id;
+            document.getElementById('editLessonTitle').value = title;
+            document.getElementById('editLessonVideo').value = url;
+            document.getElementById('editLessonContent').value = content;
+            document.getElementById('editLessonOrder').value = order;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+
+        async function saveLesson() {
+            const id = document.getElementById('editLessonId').value;
+            const payload = {
+                title: document.getElementById('editLessonTitle').value,
+                video_url: document.getElementById('editLessonVideo').value,
+                content: document.getElementById('editLessonContent').value,
+                order: document.getElementById('editLessonOrder').value
+            };
+            const res = await fetch(`/api/admin/lessons/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            if(res.ok) { alert('Aula atualizada!'); closeModal(); loadCourses(); }
         }
 
         async function deleteLesson(id) {
             if(confirm('Apagar aula?')) {
                 await fetch(`/api/admin/lessons/${id}`, { method: 'DELETE' });
-                loadCourses();
-            }
-        }
-
-        async function editLesson(id, oldTitle, oldUrl, oldOrder) {
-            const title = prompt('Novo título:', oldTitle);
-            const video_url = prompt('Nova URL Vídeo:', oldUrl);
-            const order = prompt('Nova Ordem:', oldOrder);
-            if(title) {
-                await fetch(`/api/admin/lessons/${id}`, {
-                    method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ title, video_url, order })
-                });
                 loadCourses();
             }
         }
