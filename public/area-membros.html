@@ -98,14 +98,28 @@
             document.getElementById('mainView').style.display = 'block';
             document.getElementById('emptyView').style.display = 'none';
             document.getElementById('lessonTitle').textContent = title;
-            document.getElementById('lessonContent').textContent = content || 'Sem descrição adicional.';
             
-            // Handle YouTube/Vimeo URLs to embed format
-            let embedUrl = url;
-            if (url.includes('youtube.com/watch?v=')) embedUrl = url.replace('watch?v=', 'embed/');
-            if (url.includes('youtu.be/')) embedUrl = url.replace('youtu.be/', 'youtube.com/embed/');
+            // Link detection and preservation of line breaks
+            const formattedContent = (content || 'Sem descrição adicional.')
+                .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color: var(--primary); text-decoration: underline;">$1</a>')
+                .replace(/\n/g, '<br>');
             
-            document.getElementById('videoPlayer').src = embedUrl;
+            document.getElementById('lessonContent').innerHTML = formattedContent;
+            
+            const videoContainer = document.querySelector('.video-container');
+            const videoPlayer = document.getElementById('videoPlayer');
+
+            if (url && url.trim() !== '') {
+                videoContainer.style.display = 'block';
+                // Handle YouTube/Vimeo URLs to embed format
+                let embedUrl = url;
+                if (url.includes('youtube.com/watch?v=')) embedUrl = url.replace('watch?v=', 'embed/');
+                if (url.includes('youtu.be/')) embedUrl = url.replace('youtu.be/', 'youtube.com/embed/');
+                videoPlayer.src = embedUrl;
+            } else {
+                videoContainer.style.display = 'none';
+                videoPlayer.src = '';
+            }
         }
 
         async function logout() {

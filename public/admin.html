@@ -146,6 +146,7 @@
                         </select>
                         <input type="text" id="lessonTitle" placeholder="Título da Aula" required>
                         <input type="text" id="lessonVideo" placeholder="URL do Vídeo (YouTube/Vimeo)">
+                        <textarea id="lessonContentInput" placeholder="Conteúdo escrito da aula (suporta links e textos longos)" style="height: 150px;"></textarea>
                         <input type="number" id="lessonOrder" placeholder="Ordem" value="1">
                         <button type="submit" class="btn-primary" style="width: 100%;">Adicionar Aula</button>
                     </form>
@@ -304,10 +305,12 @@
                 course_id: document.getElementById('lessonCourse').value,
                 title: document.getElementById('lessonTitle').value,
                 video_url: document.getElementById('lessonVideo').value,
+                content: document.getElementById('lessonContentInput').value,
                 order: document.getElementById('lessonOrder').value
             };
             await fetch('/api/admin/lessons', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
             alert('Aula adicionada!');
+            document.getElementById('createLessonForm').reset();
         });
 
         document.getElementById('enrollForm').addEventListener('submit', async (e) => {
