@@ -59,15 +59,34 @@ app.get('/api/me', verifyToken, async (req, res) => {
 app.get('/api/courses', verifyToken, async (req, res) => {
     if (req.user.role === 'admin') {
         const { data } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
-        return res.json(data);
+        return res.json(data || []);
     }
-    const { data, error } = await supabase.from('enrollments').select('courses(*)').eq('user_id', req.user.id);
-    if (error) {
-        console.error('Erro ao buscar cursos do aluno:', error);
+    // Busca os IDs dos cursos matriculados
+    const { data: enrollments, error: enrollError } = await supabase
+        .from('enrollments')
+        .select('course_id')
+        .eq('user_id', req.user.id);
+
+    if (enrollError) {
+        console.error('Erro ao buscar matrículas:', enrollError);
         return res.json([]);
     }
-    res.json((data || []).map(i => i.courses).filter(Boolean));
+    if (!enrollments || enrollments.length === 0) return res.json([]);
+
+    // Busca os detalhes dos cursos pelos IDs
+    const courseIds = enrollments.map(e => e.course_id);
+    const { data: courses, error: coursesError } = await supabase
+        .from('courses')
+        .select('*')
+        .in('id', courseIds);
+
+    if (coursesError) {
+        console.error('Erro ao buscar cursos:', coursesError);
+        return res.json([]);
+    }
+    res.json(courses || []);
 });
+
 app.post('/api/admin/courses', isAdmin, async (req, res) => {
     const { data } = await supabase.from('courses').insert([req.body]).select();
     res.json(data[0]);
