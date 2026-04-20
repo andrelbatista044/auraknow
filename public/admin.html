@@ -263,8 +263,22 @@
         function showSection(section) {
             document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(section + 'Section').classList.add('active');
-            event.target.classList.add('active');
+            
+            const targetSection = document.getElementById(section + 'Section');
+            if (targetSection) targetSection.classList.add('active');
+            
+            // Tenta marcar o botão da aba como ativo se houver um evento
+            if (window.event && window.event.target && window.event.target.classList) {
+                window.event.target.classList.add('active');
+            } else {
+                // Se não houver evento, tenta achar o botão pelo texto ou índice (opcional)
+                const tabs = document.querySelectorAll('.tab-btn');
+                if (section === 'users') tabs[0].classList.add('active');
+                if (section === 'courses') tabs[1].classList.add('active');
+                if (section === 'results') tabs[2].classList.add('active');
+                if (section === 'finance') tabs[3].classList.add('active');
+            }
+
             if (section === 'results') loadAllResults();
             if (section === 'finance') loadFinance();
         }
