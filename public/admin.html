@@ -133,8 +133,18 @@
                 <input type="email" id="editUserEmail" placeholder="E-mail" required>
                 <select id="editUserRole" required>
                     <option value="student">Aluno</option>
+                    <option value="teacher">Docente</option>
+                    <option value="finance">Financeiro</option>
                     <option value="admin">Administrador</option>
                 </select>
+                <div id="teacherAssignmentSection" style="display:none; margin-top: 15px; border-top: 1px solid var(--glass-border); padding-top: 15px;">
+                    <label style="font-size: 0.8rem; color: var(--text-dim);">Cursos Atribuídos:</label>
+                    <div id="assignedCoursesList" style="margin: 10px 0;"></div>
+                    <div style="display: flex; gap: 5px;">
+                        <select id="assignCourseSelect" style="margin:0;"></select>
+                        <button type="button" class="action-btn success" onclick="assignCourse()">+</button>
+                    </div>
+                </div>
                 <div style="display: flex; gap: 10px; margin-top: 15px;">
                     <button type="submit" class="btn-primary" style="flex: 1;">Salvar</button>
                     <button type="button" class="btn-secondary" onclick="closeEditUserModal()">Cancelar</button>
@@ -178,8 +188,23 @@
         <!-- SEÇÃO ALUNOS -->
         <div id="usersSection" class="admin-section active">
             <div class="admin-grid">
-                <div class="glass" style="padding: 40px;"><h3>Novo Aluno</h3><form id="createUserForm"><input type="text" id="newRegistration" placeholder="Matrícula / RM (Opcional)"><input type="text" id="newName" placeholder="Nome" required><input type="email" id="newEmail" placeholder="E-mail" required><input type="password" id="newPassword" placeholder="Senha" required><select id="newRole" required><option value="student">Aluno</option><option value="admin">Administrador</option></select><button type="submit" class="btn-primary" style="width: 100%;">Criar</button></form></div>
-                <div class="glass" style="padding: 40px;"><h3>Alunos Cadastrados</h3><table><thead><tr><th>RM/Matr.</th><th>Nome</th><th>Status</th><th>Ações</th></tr></thead><tbody id="userList"></tbody></table></div>
+                <div id="createUserCard" class="glass" style="padding: 40px;">
+                    <h3>Novo Usuário</h3>
+                    <form id="createUserForm">
+                        <input type="text" id="newRegistration" placeholder="Matrícula / RM (Opcional)">
+                        <input type="text" id="newName" placeholder="Nome" required>
+                        <input type="email" id="newEmail" placeholder="E-mail" required>
+                        <input type="password" id="newPassword" placeholder="Senha" required>
+                        <select id="newRole" required>
+                            <option value="student">Aluno</option>
+                            <option value="teacher">Docente</option>
+                            <option value="finance">Financeiro</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                        <button type="submit" class="btn-primary" style="width: 100%;">Criar</button>
+                    </form>
+                </div>
+                <div class="glass" style="padding: 40px;"><h3>Usuários Cadastrados</h3><table><thead><tr><th>RM/Matr.</th><th>Nome</th><th>Status</th><th>Ações</th></tr></thead><tbody id="userList"></tbody></table></div>
             </div>
         </div>
 
@@ -244,16 +269,44 @@
             if (section === 'finance') loadFinance();
         }
 
+        let currentUser = null;
+        async function checkAuth() {
+            const res = await fetch('/api/me');
+            if (!res.ok) window.location.href = 'login.html';
+            currentUser = await res.json();
+            if (currentUser.role === 'student') window.location.href = 'area-membros.html';
+            
+            applyRoleRestrictions();
+            loadUsers();
+            loadCourses();
+        }
+
+        function applyRoleRestrictions() {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const role = currentUser.role;
+
+            if (role === 'finance') {
+                tabs[0].textContent = 'Pessoas'; // Alunos/Usuários
+                tabs[1].style.display = 'none'; // Conteúdo
+                tabs[2].style.display = 'none'; // Boletim
+                document.getElementById('createUserCard').style.display = 'none'; // Não cria usuário
+                showSection('finance');
+            } else if (role === 'teacher') {
+                tabs[0].style.display = 'none'; // Alunos
+                tabs[3].style.display = 'none'; // Financeiro
+                showSection('courses');
+            }
+        }
+
         async function loadAllResults() {
-            // Em um sistema real, o admin precisa de uma rota especial. Vou usar a mesma mas o server vai tratar.
-            const res = await fetch('/api/admin/all-results'); // Vou criar essa rota agora
+            const res = await fetch('/api/admin/all-results');
             const results = await res.json();
             const list = document.getElementById('resultsList');
             list.innerHTML = '';
             results.forEach(r => {
                 list.innerHTML += `<tr>
-                    <td>${r.users.name}</td>
-                    <td>${r.quizzes.title}</td>
+                    <td>${r.users ? r.users.name : 'Desconhecido'}</td>
+                    <td>${r.quizzes ? r.quizzes.title : 'Prova'}</td>
                     <td>${r.score}%</td>
                     <td><span class="status-badge ${r.passed?'status-active':'status-blocked'}">${r.passed?'Aprovado':'Reprovado'}</span></td>
                     <td>${new Date(r.completed_at).toLocaleDateString()}</td>
@@ -463,7 +516,7 @@
             }
         });
         
-        function openEditUserModal(id) {
+        async function openEditUserModal(id) {
             const u = window.allUsers.find(x => x.id === id);
             if(!u) return;
             document.getElementById('editUserId').value = u.id;
@@ -471,7 +524,53 @@
             document.getElementById('editUserName').value = u.name;
             document.getElementById('editUserEmail').value = u.email;
             document.getElementById('editUserRole').value = u.role;
+            
+            // Atribuições para Professor
+            const assignSection = document.getElementById('teacherAssignmentSection');
+            if (u.role === 'teacher' && currentUser.role === 'admin') {
+                assignSection.style.display = 'block';
+                loadTeacherAssignments(u.id);
+                loadCourseOptionsForAssign();
+            } else {
+                assignSection.style.display = 'none';
+            }
+
             document.getElementById('editUserModal').style.display = 'flex';
+        }
+
+        async function loadTeacherAssignments(teacherId) {
+            const res = await fetch(`/api/admin/teacher-assignments/${teacherId}`);
+            const assignments = await res.json();
+            const list = document.getElementById('assignedCoursesList');
+            list.innerHTML = assignments.map(a => `
+                <div style="display:flex; justify-content:space-between; font-size:0.85rem; background:rgba(255,255,255,0.05); padding:5px 10px; border-radius:5px; margin-bottom:5px;">
+                    <span>${a.courses.title}</span>
+                    <button class="action-btn danger" style="padding:0 5px;" onclick="removeAssignment('${a.id}', '${teacherId}')">x</button>
+                </div>
+            `).join('');
+        }
+
+        async function loadCourseOptionsForAssign() {
+            const res = await fetch('/api/courses');
+            const courses = await res.json();
+            const select = document.getElementById('assignCourseSelect');
+            select.innerHTML = courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+        }
+
+        async function assignCourse() {
+            const teacher_id = document.getElementById('editUserId').value;
+            const course_id = document.getElementById('assignCourseSelect').value;
+            await fetch('/api/admin/teacher-assignments', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ teacher_id, course_id })
+            });
+            loadTeacherAssignments(teacher_id);
+        }
+
+        async function removeAssignment(id, teacherId) {
+            await fetch(`/api/admin/teacher-assignments/${id}`, { method: 'DELETE' });
+            loadTeacherAssignments(teacherId);
         }
         function closeEditUserModal() { document.getElementById('editUserModal').style.display = 'none'; }
         
@@ -713,7 +812,7 @@
             fetch(`/api/admin/lessons/${id}`, { method: 'DELETE' }).then(() => loadCourses());
         }
 
-        loadUsers(); loadCourses();
+        checkAuth();
 
     </script>
 </body>

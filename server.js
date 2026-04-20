@@ -33,9 +33,31 @@ const isAdmin = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         const { data: user } = await supabase.from('users').select('role, is_active').eq('id', decoded.id).single();
-        if (user && user.role === 'admin' && user.is_active) { req.user = decoded; return next(); }
-        res.status(403).json({ error: 'Acesso negado' });
+        if (user && user.role === 'admin' && user.is_active) { req.user = { ...decoded, role: user.role }; return next(); }
+        res.status(403).json({ error: 'Acesso negado: Apenas administradores.' });
     } catch (err) { res.clearCookie('token'); res.status(401).json({ error: 'Sessão inválida' }); }
+};
+
+const isFinance = async (req, res, next) => {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ error: 'Não autorizado' });
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const { data: user } = await supabase.from('users').select('role, is_active').eq('id', decoded.id).single();
+        if (user && (user.role === 'admin' || user.role === 'finance') && user.is_active) { req.user = { ...decoded, role: user.role }; return next(); }
+        res.status(403).json({ error: 'Acesso negado: Área Financeira.' });
+    } catch (err) { res.status(401).json({ error: 'Sessão inválida' }); }
+};
+
+const isTeacher = async (req, res, next) => {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ error: 'Não autorizado' });
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const { data: user } = await supabase.from('users').select('role, is_active').eq('id', decoded.id).single();
+        if (user && (user.role === 'admin' || user.role === 'teacher') && user.is_active) { req.user = { ...decoded, role: user.role }; return next(); }
+        res.status(403).json({ error: 'Acesso negado: Área Pedagógica.' });
+    } catch (err) { res.status(401).json({ error: 'Sessão inválida' }); }
 };
 
 // --- AUTH ---
@@ -77,66 +99,54 @@ app.get('/api/courses', verifyToken, async (req, res) => {
         const { data } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
         return res.json(data || []);
     }
-    // Busca os IDs dos cursos matriculados
-    const { data: enrollments, error: enrollError } = await supabase
-        .from('enrollments')
-        .select('course_id')
-        .eq('user_id', req.user.id);
-
-    if (enrollError) {
-        console.error('Erro ao buscar matrículas:', enrollError);
-        return res.json([]);
+    if (req.user.role === 'teacher') {
+        const { data: assignments } = await supabase.from('teacher_assignments').select('course_id').eq('teacher_id', req.user.id);
+        const courseIds = (assignments || []).map(a => a.course_id);
+        const { data } = await supabase.from('courses').select('*').in('id', courseIds).order('created_at', { ascending: false });
+        return res.json(data || []);
     }
-    if (!enrollments || enrollments.length === 0) return res.json([]);
-
-    // Busca os detalhes dos cursos pelos IDs
-    const courseIds = enrollments.map(e => e.course_id);
-    const { data: courses, error: coursesError } = await supabase
-        .from('courses')
-        .select('*')
-        .in('id', courseIds);
-
-    if (coursesError) {
-        console.error('Erro ao buscar cursos:', coursesError);
-        return res.json([]);
-    }
-    res.json(courses || []);
+    // Aluno
+    const { data: enrollments } = await supabase.from('enrollments').select('course_id').eq('user_id', req.user.id);
+    const ids = (enrollments || []).map(e => e.course_id);
+    const { data } = await supabase.from('courses').select('*').in('id', ids).order('created_at', { ascending: false });
+    res.json(data || []);
 });
 
 app.post('/api/admin/courses', isAdmin, async (req, res) => {
     const { data } = await supabase.from('courses').insert([req.body]).select();
     res.json(data[0]);
 });
-app.put('/api/admin/courses/:id', isAdmin, async (req, res) => { await supabase.from('courses').update(req.body).eq('id', req.params.id); res.json({ success: true }); });
+app.put('/api/admin/courses/:id', isTeacher, async (req, res) => { await supabase.from('courses').update(req.body).eq('id', req.params.id); res.json({ success: true }); });
 app.delete('/api/admin/courses/:id', isAdmin, async (req, res) => { await supabase.from('courses').delete().eq('id', req.params.id); res.json({ success: true }); });
 
+// --- MATÉRIAS E MÓDULOS (Docente/Admin) ---
 app.get('/api/courses/:id/subjects', verifyToken, async (req, res) => {
     const { data } = await supabase.from('subjects').select('*').eq('course_id', req.params.id).order('order', { ascending: true });
     res.json(data);
 });
-app.post('/api/admin/subjects', isAdmin, async (req, res) => {
+app.post('/api/admin/subjects', isTeacher, async (req, res) => {
     const { data } = await supabase.from('subjects').insert([req.body]).select();
     res.json(data[0]);
 });
-app.put('/api/admin/subjects/:id', isAdmin, async (req, res) => { await supabase.from('subjects').update(req.body).eq('id', req.params.id); res.json({ success: true }); });
-app.delete('/api/admin/subjects/:id', isAdmin, async (req, res) => { await supabase.from('subjects').delete().eq('id', req.params.id); res.json({ success: true }); });
+app.put('/api/admin/subjects/:id', isTeacher, async (req, res) => { await supabase.from('subjects').update(req.body).eq('id', req.params.id); res.json({ success: true }); });
+app.delete('/api/admin/subjects/:id', isTeacher, async (req, res) => { await supabase.from('subjects').delete().eq('id', req.params.id); res.json({ success: true }); });
 
 app.get('/api/subjects/:id/modules', verifyToken, async (req, res) => {
     const { data } = await supabase.from('modules').select('*').eq('subject_id', req.params.id).order('order', { ascending: true });
     res.json(data);
 });
-app.post('/api/admin/modules', isAdmin, async (req, res) => {
+app.post('/api/admin/modules', isTeacher, async (req, res) => {
     const { data } = await supabase.from('modules').insert([req.body]).select();
     res.json(data[0]);
 });
-app.put('/api/admin/modules/:id', isAdmin, async (req, res) => { await supabase.from('modules').update(req.body).eq('id', req.params.id); res.json({ success: true }); });
-app.delete('/api/admin/modules/:id', isAdmin, async (req, res) => { await supabase.from('modules').delete().eq('id', req.params.id); res.json({ success: true }); });
+app.put('/api/admin/modules/:id', isTeacher, async (req, res) => { await supabase.from('modules').update(req.body).eq('id', req.params.id); res.json({ success: true }); });
+app.delete('/api/admin/modules/:id', isTeacher, async (req, res) => { await supabase.from('modules').delete().eq('id', req.params.id); res.json({ success: true }); });
 
 app.get('/api/modules/:id/lessons', verifyToken, async (req, res) => {
     const { data } = await supabase.from('lessons').select('*').eq('module_id', req.params.id).order('order', { ascending: true });
     res.json(data);
 });
-app.post('/api/admin/lessons', isAdmin, async (req, res) => {
+app.post('/api/admin/lessons', isTeacher, async (req, res) => {
     const { data } = await supabase.from('lessons').insert([req.body]).select();
     
     // Disparar notificação
@@ -162,8 +172,8 @@ app.post('/api/admin/lessons', isAdmin, async (req, res) => {
     
     res.json(data[0]);
 });
-app.put('/api/admin/lessons/:id', isAdmin, async (req, res) => { await supabase.from('lessons').update(req.body).eq('id', req.params.id); res.json({ success: true }); });
-app.delete('/api/admin/lessons/:id', isAdmin, async (req, res) => { await supabase.from('lessons').delete().eq('id', req.params.id); res.json({ success: true }); });
+app.put('/api/admin/lessons/:id', isTeacher, async (req, res) => { await supabase.from('lessons').update(req.body).eq('id', req.params.id); res.json({ success: true }); });
+app.delete('/api/admin/lessons/:id', isTeacher, async (req, res) => { await supabase.from('lessons').delete().eq('id', req.params.id); res.json({ success: true }); });
 
 // BUSCAR ÓRFÃOS
 app.get('/api/courses/:id/orphan-modules', verifyToken, async (req, res) => {
@@ -183,47 +193,26 @@ app.get('/api/modules/:id/quiz', verifyToken, async (req, res) => {
     res.json({ ...quiz, questions });
 });
 
-app.post('/api/admin/quizzes', isAdmin, async (req, res) => {
+app.post('/api/admin/quizzes', isTeacher, async (req, res) => {
     const { module_id, title, passing_score, order, questions, due_date } = req.body;
-    
-    // UPSERT no Quiz (tenta atualizar pelo module_id ou insere novo)
-    const { data: quiz, error: qErr } = await supabase.from('quizzes').upsert({ 
-        module_id, 
-        title, 
-        passing_score, 
-        order: order || 99,
-        due_date: due_date || null
-    }, { onConflict: 'module_id' }).select().single();
-
+    const { data: quiz, error: qErr } = await supabase.from('quizzes').upsert({ module_id, title, passing_score, order: order || 99, due_date: due_date || null }, { onConflict: 'module_id' }).select().single();
     if (qErr) return res.status(400).json({ error: qErr.message });
-
     if (questions && questions.length > 0) {
-        // Se estiver editando, removemos as questões antigas para colocar as novas
         await supabase.from('questions').delete().eq('quiz_id', quiz.id);
-        
         const questionsWithId = questions.map(q => ({ ...q, quiz_id: quiz.id }));
         await supabase.from('questions').insert(questionsWithId);
     }
-
-    // Disparar notificação (Apenas se for novo? Por simplicidade deixaremos sempre por enquanto)
-    // ... (restante do código de notificação permanece o mesmo)
     const { data: mod } = await supabase.from('modules').select('subject_id').eq('id', module_id).single();
     if (mod && mod.subject_id) {
         const { data: sub } = await supabase.from('subjects').select('course_id').eq('id', mod.subject_id).single();
         if (sub && sub.course_id) {
             const { data: enrollments } = await supabase.from('enrollments').select('user_id').eq('course_id', sub.course_id);
             if (enrollments && enrollments.length > 0) {
-                const notifs = enrollments.map(e => ({
-                    user_id: e.user_id,
-                    title: 'Avaliação Atualizada',
-                    message: `A prova "${title}" foi atualizada ou disponibilizada.`,
-                    type: 'exam'
-                }));
+                const notifs = enrollments.map(e => ({ user_id: e.user_id, title: 'Avaliação Atualizada', message: `A prova "${title}" foi atualizada ou disponibilizada.`, type: 'exam' }));
                 await supabase.from('notifications').insert(notifs);
             }
         }
     }
-
     res.json({ success: true });
 });
 
@@ -251,13 +240,13 @@ app.get('/api/quiz-results', verifyToken, async (req, res) => {
     res.json(data);
 });
 
-app.get('/api/admin/all-results', isAdmin, async (req, res) => {
+app.get('/api/admin/all-results', isTeacher, async (req, res) => {
     const { data } = await supabase.from('quiz_attempts').select('*, users(name), quizzes(title)').order('completed_at', { ascending: false });
     res.json(data);
 });
 
-// --- USUÁRIOS ---
-app.get('/api/admin/users', isAdmin, async (req, res) => {
+// --- USUÁRIOS (Admin/Finance) ---
+app.get('/api/admin/users', isFinance, async (req, res) => {
     const { data } = await supabase.from('users').select('id, name, email, role, is_active, registration').order('created_at', { ascending: false });
     res.json(data.map(u => ({ ...u, isActive: u.is_active })));
 });
@@ -295,33 +284,40 @@ app.post('/api/admin/enroll', isAdmin, async (req, res) => {
 });
 
 // --- ADMIN FINANCEIRO ---
-app.get('/api/admin/finance', isAdmin, async (req, res) => {
+app.get('/api/admin/finance', isFinance, async (req, res) => {
     const { data } = await supabase.from('payments').select('*, users(name)').order('due_date', { ascending: false });
     res.json(data || []);
 });
-app.post('/api/admin/finance', isAdmin, async (req, res) => {
+app.post('/api/admin/finance', isFinance, async (req, res) => {
     const { user_id, amount, due_date, status } = req.body;
     const { data, error } = await supabase.from('payments').insert([{ user_id, amount, due_date, status }]).select();
     if (error) return res.status(400).json({ error: error.message });
-    
-    // Disparar notificação
-    await supabase.from('notifications').insert([{
-        user_id,
-        title: 'Novo Pagamento',
-        message: `Uma nova fatura de R$ ${parseFloat(amount).toFixed(2)} foi gerada.`,
-        type: 'finance'
-    }]);
-
+    await supabase.from('notifications').insert([{ user_id, title: 'Novo Pagamento', message: `Uma nova fatura de R$ ${parseFloat(amount).toFixed(2)} foi gerada.`, type: 'finance' }]);
     res.json(data[0]);
 });
-app.put('/api/admin/finance/:id', isAdmin, async (req, res) => {
+app.put('/api/admin/finance/:id', isFinance, async (req, res) => {
     const { error } = await supabase.from('payments').update(req.body).eq('id', req.params.id);
     if (error) return res.status(400).json({ error: error.message });
     res.json({ success: true });
 });
-app.delete('/api/admin/finance/:id', isAdmin, async (req, res) => {
+app.delete('/api/admin/finance/:id', isFinance, async (req, res) => {
     const { error } = await supabase.from('payments').delete().eq('id', req.params.id);
     if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+});
+
+// --- ATRIBUIÇÕES DE PROFESSORES ---
+app.get('/api/admin/teacher-assignments/:teacherId', isAdmin, async (req, res) => {
+    const { data } = await supabase.from('teacher_assignments').select('*, courses(title)').eq('teacher_id', req.params.teacherId);
+    res.json(data);
+});
+app.post('/api/admin/teacher-assignments', isAdmin, async (req, res) => {
+    const { teacher_id, course_id } = req.body;
+    const { data } = await supabase.from('teacher_assignments').insert([{ teacher_id, course_id }]).select();
+    res.json(data[0]);
+});
+app.delete('/api/admin/teacher-assignments/:id', isAdmin, async (req, res) => {
+    await supabase.from('teacher_assignments').delete().eq('id', req.params.id);
     res.json({ success: true });
 });
 
