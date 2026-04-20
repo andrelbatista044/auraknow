@@ -11,7 +11,9 @@
         .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
         .admin-section { display: none; }
         .admin-section.active { display: block; }
-        .admin-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 40px; }
+        .admin-grid { display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap; }
+        .admin-grid > .glass { flex: 1; min-width: 350px; }
+        .admin-grid > .glass:nth-child(2) { flex: 3; } /* Dá mais peso para a gestão de conteúdo */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { text-align: left; padding: 15px; border-bottom: 1px solid var(--glass-border); }
         .status-badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; }
@@ -30,6 +32,7 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: var(--bg-dark); border: 1px solid var(--glass-border); padding: 40px; border-radius: 24px; width: 800px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
         .question-card { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; border: 1px solid var(--glass-border); margin-bottom: 20px; }
+        main.container { max-width: 1600px; width: 95%; }
     </style>
 </head>
 <body>
