@@ -101,6 +101,10 @@ app.post('/api/admin/subjects', isAdmin, async (req, res) => {
     const { data } = await supabase.from('subjects').insert([req.body]).select();
     res.json(data[0]);
 });
+app.put('/api/admin/subjects/:id', isAdmin, async (req, res) => {
+    await supabase.from('subjects').update(req.body).eq('id', req.params.id);
+    res.json({ success: true });
+});
 app.delete('/api/admin/subjects/:id', isAdmin, async (req, res) => {
     await supabase.from('subjects').delete().eq('id', req.params.id);
     res.json({ success: true });
@@ -114,6 +118,10 @@ app.get('/api/subjects/:id/modules', verifyToken, async (req, res) => {
 app.post('/api/admin/modules', isAdmin, async (req, res) => {
     const { data } = await supabase.from('modules').insert([req.body]).select();
     res.json(data[0]);
+});
+app.put('/api/admin/modules/:id', isAdmin, async (req, res) => {
+    await supabase.from('modules').update(req.body).eq('id', req.params.id);
+    res.json({ success: true });
 });
 app.delete('/api/admin/modules/:id', isAdmin, async (req, res) => {
     await supabase.from('modules').delete().eq('id', req.params.id);
