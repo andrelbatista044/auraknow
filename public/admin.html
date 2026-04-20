@@ -317,25 +317,35 @@
         async function loadUsers() {
             const res = await fetch('/api/admin/users');
             const users = await res.json();
+            
+            if (!Array.isArray(users)) {
+                console.error('Erro ao carregar usuários:', users);
+                return;
+            }
+
             window.allUsers = users;
             const list = document.getElementById('userList');
             const enrollStudent = document.getElementById('enrollStudent');
             const financeStudent = document.getElementById('financeStudent');
-            list.innerHTML = ''; enrollStudent.innerHTML = '<option value="">Selecionar Aluno</option>';
+            
+            if (list) list.innerHTML = ''; 
+            if (enrollStudent) enrollStudent.innerHTML = '<option value="">Selecionar Aluno</option>';
             if (financeStudent) financeStudent.innerHTML = '<option value="">Selecionar Aluno</option>';
+
             users.forEach(u => {
                 if (u.email === 'admin@auraknow.com') return;
-                const regBadge = u.registration ? `<span style="color:var(--text-dim); font-size:0.8rem;">#${u.registration}</span> ` : '';
                 const regStr = u.registration ? `[${u.registration}] ` : '';
                 const statusLabel = u.isActive ? 'Bloquear' : 'Desbloquear';
                 
-                list.innerHTML += `<tr><td>${u.registration || '-'}</td><td>${u.name}</td><td><span class="status-badge ${u.isActive?'status-active':'status-blocked'}">${u.isActive?'Ativo':'Bloq'}</span></td>
-                <td>
-                    <button class="action-btn" onclick="openEditUserModal('${u.id}')">Editar</button>
-                    <button class="action-btn" onclick="toggleStatus('${u.id}')">${statusLabel}</button>
-                    <button class="action-btn danger" onclick="deleteUser('${u.id}')">X</button>
-                </td></tr>`;
-                enrollStudent.innerHTML += `<option value="${u.id}">${regStr}${u.name}</option>`;
+                if (list) {
+                    list.innerHTML += `<tr><td>${u.registration || '-'}</td><td>${u.name}</td><td><span class="status-badge ${u.isActive?'status-active':'status-blocked'}">${u.isActive?'Ativo':'Bloq'}</span></td>
+                    <td>
+                        <button class="action-btn" onclick="openEditUserModal('${u.id}')">Editar</button>
+                        <button class="action-btn" onclick="toggleStatus('${u.id}')">${statusLabel}</button>
+                        <button class="action-btn danger" onclick="deleteUser('${u.id}')">X</button>
+                    </td></tr>`;
+                }
+                if (enrollStudent) enrollStudent.innerHTML += `<option value="${u.id}">${regStr}${u.name}</option>`;
                 if (financeStudent) financeStudent.innerHTML += `<option value="${u.id}">${regStr}${u.name}</option>`;
             });
         }

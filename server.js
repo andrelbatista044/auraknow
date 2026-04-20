@@ -247,8 +247,9 @@ app.get('/api/admin/all-results', isTeacher, async (req, res) => {
 
 // --- USUÁRIOS (Admin/Finance) ---
 app.get('/api/admin/users', isFinance, async (req, res) => {
-    const { data } = await supabase.from('users').select('id, name, email, role, is_active, registration').order('created_at', { ascending: false });
-    res.json(data.map(u => ({ ...u, isActive: u.is_active })));
+    const { data, error } = await supabase.from('users').select('id, name, email, role, is_active, registration').order('created_at', { ascending: false });
+    if (error) return res.json([]);
+    res.json((data || []).map(u => ({ ...u, isActive: u.is_active })));
 });
 app.post('/api/admin/create-user', isAdmin, async (req, res) => {
     if (req.body.registration) {
