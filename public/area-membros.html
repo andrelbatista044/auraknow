@@ -6,121 +6,127 @@
     <title>AuraKnow | Área de Membros</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body {
-            height: 100vh;
-            display: flex;
-            overflow: hidden;
-        }
-        .sidebar {
-            width: 300px;
-            height: 100%;
-            border-right: 1px solid var(--glass-border);
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            background: rgba(13, 13, 13, 0.8);
-            backdrop-filter: blur(20px);
-        }
-        .main-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 40px;
-        }
-        .lesson-list {
-            margin-top: 30px;
-            list-style: none;
-        }
-        .lesson-item {
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: background 0.3s;
-            color: var(--text-dim);
-            font-size: 0.9rem;
-        }
-        .lesson-item:hover, .lesson-item.active {
-            background: var(--glass-bg);
-            color: var(--text-main);
-            border-left: 3px solid var(--primary);
-        }
-        .video-container {
-            width: 100%;
-            aspect-ratio: 16/9;
-            background: #000;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 30px;
-            border: 1px solid var(--glass-border);
-        }
-        .module-title {
-            text-transform: uppercase;
-            font-size: 0.7rem;
-            color: var(--primary);
-            letter-spacing: 2px;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            display: block;
-        }
-        @media (max-width: 900px) {
-            body {
-                flex-direction: column;
-            }
-            .sidebar {
-                width: 100%;
-                height: auto;
-                max-height: 300px;
-            }
-        }
+        body { display: flex; height: 100vh; overflow: hidden; background: var(--bg-dark); }
+        .sidebar { width: 320px; background: var(--glass-bg); border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; height: 100%; transition: all 0.3s; z-index: 100; }
+        .sidebar-header { padding: 30px; border-bottom: 1px solid var(--glass-border); }
+        .content-list { flex: 1; overflow-y: auto; padding: 20px; }
+        .course-item { padding: 15px; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s; border: 1px solid transparent; }
+        .course-item:hover { background: rgba(255,255,255,0.05); }
+        .course-item.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .lesson-item { padding: 12px 15px; font-size: 0.9rem; color: var(--text-dim); cursor: pointer; border-radius: 8px; margin-left: 15px; margin-top: 5px; }
+        .lesson-item:hover { color: white; background: rgba(255,255,255,0.03); }
+        .lesson-item.active { color: var(--primary); font-weight: 600; }
+        .main-content { flex: 1; overflow-y: auto; padding: 50px; position: relative; }
+        .video-container { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 24px; overflow: hidden; margin-bottom: 30px; box-shadow: var(--shadow); }
+        .video-container iframe { width: 100%; height: 100%; border: none; }
+        .user-profile { padding: 30px; border-top: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; }
+        .course-section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--primary); margin-bottom: 15px; margin-top: 25px; font-weight: 700; }
+        .empty-state { text-align: center; margin-top: 100px; color: var(--text-dim); }
     </style>
 </head>
 <body>
     <script>
+        let currentUserId = null;
+
         async function checkAuth() {
             try {
                 const res = await fetch('/api/me');
-                if (!res.ok) {
-                    window.location.href = 'login.html';
-                    return;
-                }
+                if (!res.ok) { window.location.href = 'login.html'; return; }
                 const user = await res.json();
-                if (!user.isActive) {
-                    alert('Seu acesso está bloqueado. Entre em contato com o suporte.');
-                    window.location.href = 'login.html';
-                }
-                // Atualiza nome do aluno no sidebar
-                const nameDisplay = document.getElementById('userName');
-                if (nameDisplay) nameDisplay.innerText = user.name;
-            } catch (e) {
-                window.location.href = 'login.html';
-            }
+                if (!user.isActive) { alert('Acesso bloqueado.'); window.location.href = 'login.html'; return; }
+                currentUserId = user.id;
+                document.getElementById('userName').innerText = user.name;
+                loadEnrollments();
+            } catch (e) { window.location.href = 'login.html'; }
         }
-        checkAuth();
+
+        async function loadEnrollments() {
+            const res = await fetch('/api/courses');
+            const courses = await res.json();
+            const list = document.getElementById('enrollmentList');
+            list.innerHTML = '';
+
+            if (courses.length === 0) {
+                list.innerHTML = '<p style="color: var(--text-dim); font-size: 0.8rem; text-align: center;">Nenhum curso matriculado.</p>';
+                return;
+            }
+
+            courses.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'course-item';
+                div.innerHTML = `<strong>${c.title}</strong>`;
+                div.onclick = () => loadLessons(c.id, div);
+                list.appendChild(div);
+            });
+        }
+
+        async function loadLessons(courseId, element) {
+            document.querySelectorAll('.course-item').forEach(i => i.classList.remove('active'));
+            element.classList.add('active');
+
+            const res = await fetch(`/api/courses/${courseId}/lessons`);
+            const lessons = await res.json();
+            
+            // Remove existing lesson sub-lists
+            document.querySelectorAll('.lesson-sub-list').forEach(l => l.remove());
+
+            const subList = document.createElement('div');
+            subList.className = 'lesson-sub-list';
+            
+            if (lessons.length === 0) {
+                subList.innerHTML = '<div class="lesson-item">Nenhuma aula ainda.</div>';
+            }
+
+            lessons.forEach(l => {
+                const lDiv = document.createElement('div');
+                lDiv.className = 'lesson-item';
+                lDiv.textContent = `${l.order}. ${l.title}`;
+                lDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    playVideo(l.video_url, l.title, l.content, lDiv);
+                };
+                subList.appendChild(lDiv);
+            });
+
+            element.after(subList);
+        }
+
+        function playVideo(url, title, content, element) {
+            document.querySelectorAll('.lesson-item').forEach(i => i.classList.remove('active'));
+            element.classList.add('active');
+
+            document.getElementById('mainView').style.display = 'block';
+            document.getElementById('emptyView').style.display = 'none';
+            document.getElementById('lessonTitle').textContent = title;
+            document.getElementById('lessonContent').textContent = content || 'Sem descrição adicional.';
+            
+            // Handle YouTube/Vimeo URLs to embed format
+            let embedUrl = url;
+            if (url.includes('youtube.com/watch?v=')) embedUrl = url.replace('watch?v=', 'embed/');
+            if (url.includes('youtu.be/')) embedUrl = url.replace('youtu.be/', 'youtube.com/embed/');
+            
+            document.getElementById('videoPlayer').src = embedUrl;
+        }
+
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = 'login.html';
+        }
+
+        window.onload = checkAuth;
     </script>
-    <div class="bg-mesh"></div>
 
     <aside class="sidebar">
-        <a href="index.html" class="logo" style="margin-bottom: 40px;">Aura<span>Know</span></a>
-        
-        <div style="flex: 1; overflow-y: auto;">
-            <span class="module-title">Módulo 01: Primeiros Passos</span>
-            <ul class="lesson-list">
-                <li class="lesson-item active">01. Boas-vindas</li>
-                <li class="lesson-item">02. Como usar a plataforma</li>
-                <li class="lesson-item">03. Comunidade no Discord</li>
-            </ul>
-
-            <span class="module-title">Módulo 02: Fundamentos</span>
-            <ul class="lesson-list">
-                <li class="lesson-item">04. O que é Aura?</li>
-                <li class="lesson-item">05. Configuração Inicial</li>
-                <li class="lesson-item">06. Primeiros Resultados</li>
-            </ul>
+        <div class="sidebar-header">
+            <a href="index.html" class="logo" style="font-size: 1.5rem;">Aura<span>Know</span></a>
         </div>
-
-        <div style="margin-top: 30px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+        <div class="content-list">
+            <div class="course-section-title">Meus Cursos</div>
+            <div id="enrollmentList">
+                <!-- Carregado via JS -->
+            </div>
+        </div>
+        <div class="user-profile">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 50%;"></div>
                 <div>
@@ -128,33 +134,29 @@
                     <div style="font-size: 0.7rem; color: var(--text-dim);">Aluno Premium</div>
                 </div>
             </div>
+            <button onclick="logout()" style="background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1.2rem;">🚪</button>
         </div>
     </aside>
 
     <main class="main-content">
-        <div class="container" style="max-width: 900px;">
+        <div class="bg-mesh" style="position: absolute; opacity: 0.1;"></div>
+        
+        <div id="emptyView" class="empty-state">
+            <div style="font-size: 4rem; margin-bottom: 20px;">🎓</div>
+            <h2>Bem-vindo à AuraKnow</h2>
+            <p>Selecione um curso na lateral para começar a estudar.</p>
+        </div>
+
+        <div id="mainView" style="display: none;">
             <div class="video-container">
-                <span style="color: var(--text-dim);">[ Player de Vídeo AuraKnow ]</span>
+                <iframe id="videoPlayer" allowfullscreen></iframe>
             </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h1>01. Boas-vindas ao Curso</h1>
-                <a href="#" class="btn-primary" style="padding: 10px 20px; font-size: 0.8rem;">Próxima Aula →</a>
-            </div>
-
-            <div class="glass" style="padding: 30px; line-height: 1.8;">
-                <h3>Descrição da Aula</h3>
-                <p style="color: var(--text-dim); margin-top: 15px;">
-                    Seja muito bem-vindo à AuraKnow! Neste vídeo introdutório, vamos alinhar as expectativas para o curso e mostrar como você pode extrair o máximo de conhecimento de cada módulo.
-                </p>
-                <div style="margin-top: 20px; display: flex; gap: 15px;">
-                    <button class="btn-secondary" style="padding: 8px 15px; font-size: 0.8rem;">📥 Baixar Material</button>
-                    <button class="btn-secondary" style="padding: 8px 15px; font-size: 0.8rem;">💬 Ver Comentários</button>
-                </div>
+            <h1 id="lessonTitle" style="margin-bottom: 20px;">Título da Aula</h1>
+            <div class="glass" style="padding: 40px;">
+                <h3>Sobre esta aula</h3>
+                <p id="lessonContent" style="color: var(--text-dim); margin-top: 15px;">Descrição da aula carregada aqui...</p>
             </div>
         </div>
     </main>
-
-    <script src="script.js"></script>
 </body>
 </html>
