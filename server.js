@@ -271,7 +271,7 @@ app.put('/api/admin/users/:id', isAdmin, async (req, res) => {
     await supabase.from('users').update({ name, email, role, registration }).eq('id', req.params.id);
     res.json({ success: true });
 });
-app.post('/api/admin/toggle-status', isAdmin, async (req, res) => {
+app.post('/api/admin/toggle-status', isFinance, async (req, res) => {
     const { data: user } = await supabase.from('users').select('is_active').eq('id', req.body.userId).single();
     await supabase.from('users').update({ is_active: !user.is_active }).eq('id', req.body.userId);
     res.json({ success: true });
