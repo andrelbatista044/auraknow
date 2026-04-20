@@ -52,6 +52,74 @@
         </div>
     </div>
 
+    <!-- MODAL DE AULA -->
+    <div id="lessonModal" class="modal">
+        <div class="modal-content glass" style="width: 600px;">
+            <h3 id="lessonModalTitle">Nova Aula</h3>
+            <input type="hidden" id="lessonModalId">
+            <input type="hidden" id="lessonModalModuleId">
+            <input type="hidden" id="lessonModalMode">
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Título da Aula</label>
+            <input type="text" id="lessonModalTitleInput" placeholder="Ex: Introdução ao tema">
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">URL do Vídeo (YouTube)</label>
+            <input type="text" id="lessonModalVideo" placeholder="https://www.youtube.com/watch?v=...">
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Conteúdo / Descrição</label>
+            <textarea id="lessonModalContent" rows="4" placeholder="Descrição da aula..."></textarea>
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Ordem</label>
+            <input type="number" id="lessonModalOrder" placeholder="1" min="1">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-primary" onclick="saveLessonModal()" style="flex: 1;">Salvar</button>
+                <button class="btn-secondary" onclick="closeModals()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE MATÉRIA -->
+    <div id="subjectModal" class="modal">
+        <div class="modal-content glass" style="width: 500px;">
+            <h3>Nova Matéria</h3>
+            <input type="hidden" id="subjectModalCourseId">
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Nome da Matéria</label>
+            <input type="text" id="subjectModalTitle" placeholder="Ex: Matemática">
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Ordem</label>
+            <input type="number" id="subjectModalOrder" placeholder="1" min="1" value="1">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-primary" onclick="saveSubjectModal()" style="flex: 1;">Criar Matéria</button>
+                <button class="btn-secondary" onclick="closeModals()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE MÓDULO -->
+    <div id="moduleModal" class="modal">
+        <div class="modal-content glass" style="width: 500px;">
+            <h3>Novo Módulo</h3>
+            <input type="hidden" id="moduleModalSubjectId">
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Nome do Módulo</label>
+            <input type="text" id="moduleModalTitle" placeholder="Ex: Módulo 1: Introdução">
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Ordem</label>
+            <input type="number" id="moduleModalOrder" placeholder="1" min="1" value="1">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-primary" onclick="saveModuleModal()" style="flex: 1;">Criar Módulo</button>
+                <button class="btn-secondary" onclick="closeModals()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL RENOMEAR CURSO -->
+    <div id="renameModal" class="modal">
+        <div class="modal-content glass" style="width: 500px;">
+            <h3>Renomear Curso</h3>
+            <input type="hidden" id="renameModalCourseId">
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Novo Nome</label>
+            <input type="text" id="renameModalTitle" placeholder="Nome do curso">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-primary" onclick="saveRenameModal()" style="flex: 1;">Salvar</button>
+                <button class="btn-secondary" onclick="closeModals()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <header class="container"><nav><a href="index.html" class="logo">Aura<span>Know</span> Admin</a><button onclick="logout()" class="btn-secondary">Sair</button></nav></header>
 
     <main class="container">
@@ -311,39 +379,79 @@
             await fetch(`/api/admin/courses/${id}`, { method: 'DELETE' }); loadCourses();
         }
         async function editCourse(id, title) {
-            const newTitle = prompt('Novo nome do curso:', title);
-            if (!newTitle) return;
-            await fetch(`/api/admin/courses/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ title: newTitle }) }); loadCourses();
+            document.getElementById('renameModalCourseId').value = id;
+            document.getElementById('renameModalTitle').value = title;
+            document.getElementById('renameModal').style.display = 'flex';
+        }
+        async function saveRenameModal() {
+            const id = document.getElementById('renameModalCourseId').value;
+            const title = document.getElementById('renameModalTitle').value;
+            if (!title) return;
+            await fetch(`/api/admin/courses/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ title }) });
+            closeModals(); loadCourses();
         }
         function openSubjectModal(mode, courseId) {
-            const title = prompt('Nome da Matéria:');
+            document.getElementById('subjectModalCourseId').value = courseId;
+            document.getElementById('subjectModalTitle').value = '';
+            document.getElementById('subjectModalOrder').value = '1';
+            document.getElementById('subjectModal').style.display = 'flex';
+        }
+        async function saveSubjectModal() {
+            const courseId = document.getElementById('subjectModalCourseId').value;
+            const title = document.getElementById('subjectModalTitle').value;
+            const order = parseInt(document.getElementById('subjectModalOrder').value) || 1;
             if (!title) return;
-            fetch('/api/admin/subjects', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ course_id: courseId, title, order: 1 }) }).then(() => loadCourses());
+            await fetch('/api/admin/subjects', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ course_id: courseId, title, order }) });
+            closeModals(); loadCourses();
         }
         function deleteSubject(id) {
             if (!confirm('Excluir esta matéria?')) return;
             fetch(`/api/admin/subjects/${id}`, { method: 'DELETE' }).then(() => loadCourses());
         }
         function openModuleModal(mode, moduleId, subjectId) {
-            const title = prompt('Nome do Módulo:');
+            document.getElementById('moduleModalSubjectId').value = subjectId;
+            document.getElementById('moduleModalTitle').value = '';
+            document.getElementById('moduleModalOrder').value = '1';
+            document.getElementById('moduleModal').style.display = 'flex';
+        }
+        async function saveModuleModal() {
+            const subjectId = document.getElementById('moduleModalSubjectId').value;
+            const title = document.getElementById('moduleModalTitle').value;
+            const order = parseInt(document.getElementById('moduleModalOrder').value) || 1;
             if (!title) return;
-            const order = prompt('Ordem do módulo:', '1');
-            fetch('/api/admin/modules', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ subject_id: subjectId, title, order: parseInt(order) || 1 }) }).then(() => loadCourses());
+            await fetch('/api/admin/modules', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ subject_id: subjectId, title, order }) });
+            closeModals(); loadCourses();
         }
         function deleteModule(id) {
             if (!confirm('Excluir este módulo?')) return;
             fetch(`/api/admin/modules/${id}`, { method: 'DELETE' }).then(() => loadCourses());
         }
         function openLessonModal(mode, lessonId, moduleId, title, videoUrl, content, order) {
-            const lTitle = prompt('Título da Aula:', title || '');
+            document.getElementById('lessonModalMode').value = mode;
+            document.getElementById('lessonModalId').value = lessonId || '';
+            document.getElementById('lessonModalModuleId').value = moduleId || '';
+            document.getElementById('lessonModalTitle').textContent = mode === 'edit' ? 'Editar Aula' : 'Nova Aula';
+            document.getElementById('lessonModalTitleInput').value = title || '';
+            document.getElementById('lessonModalVideo').value = videoUrl || '';
+            document.getElementById('lessonModalContent').value = (content || '').replace(/<br>/g, '\n');
+            document.getElementById('lessonModalOrder').value = order || '1';
+            document.getElementById('lessonModal').style.display = 'flex';
+        }
+        async function saveLessonModal() {
+            const mode = document.getElementById('lessonModalMode').value;
+            const lessonId = document.getElementById('lessonModalId').value;
+            const moduleId = document.getElementById('lessonModalModuleId').value;
+            const lTitle = document.getElementById('lessonModalTitleInput').value;
+            const lVideo = document.getElementById('lessonModalVideo').value;
+            const lContent = document.getElementById('lessonModalContent').value;
+            const lOrder = parseInt(document.getElementById('lessonModalOrder').value) || 1;
             if (!lTitle) return;
-            const lVideo = prompt('URL do Vídeo (YouTube):', videoUrl || '');
-            const lOrder = prompt('Ordem da Aula:', order || '1');
             if (mode === 'create') {
-                fetch('/api/admin/lessons', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ module_id: moduleId, title: lTitle, video_url: lVideo, order: parseInt(lOrder) || 1 }) }).then(() => loadCourses());
+                await fetch('/api/admin/lessons', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ module_id: moduleId, title: lTitle, video_url: lVideo, content: lContent, order: lOrder }) });
             } else {
-                fetch(`/api/admin/lessons/${lessonId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ title: lTitle, video_url: lVideo, order: parseInt(lOrder) || 1 }) }).then(() => loadCourses());
+                await fetch(`/api/admin/lessons/${lessonId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ title: lTitle, video_url: lVideo, content: lContent, order: lOrder }) });
             }
+            closeModals(); loadCourses();
         }
         function deleteLesson(id) {
             if (!confirm('Excluir esta aula?')) return;
