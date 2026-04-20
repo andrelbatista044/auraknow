@@ -142,6 +142,21 @@ app.post('/api/admin/reset-password', isAdmin, async (req, res) => {
     }
 });
 
+// NOVA ROTA: APAGAR ALUNO
+app.delete('/api/admin/delete-user', isAdmin, async (req, res) => {
+    const { userId } = req.body;
+    try {
+        // Impede de apagar a si mesmo
+        if (userId === req.user.id) return res.status(400).json({ error: 'Você não pode apagar sua própria conta' });
+
+        const { error } = await supabase.from('users').delete().eq('id', userId);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Erro ao apagar usuário' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 AuraKnow Vercel Edition rodando na porta ${PORT}`);
 });

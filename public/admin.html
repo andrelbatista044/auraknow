@@ -137,6 +137,9 @@
                         <button class="action-btn" onclick="resetPassword('${user.id}')" style="margin-left: 5px;">
                             Nova Senha
                         </button>
+                        <button class="action-btn" onclick="deleteUser('${user.id}')" style="margin-left: 5px; border-color: #ff4d4d; color: #ff4d4d;">
+                            Apagar
+                        </button>
                     </td>
                 `;
                 list.appendChild(tr);
@@ -191,6 +194,24 @@
                 alert('Senha alterada com sucesso!');
             } else {
                 alert('Erro ao alterar senha.');
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('TEM CERTEZA? Esta ação é permanente e o aluno perderá todo o acesso.')) return;
+
+            const res = await fetch('/api/admin/delete-user', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId })
+            });
+
+            if (res.ok) {
+                alert('Aluno removido com sucesso.');
+                loadUsers();
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Erro ao remover aluno.');
             }
         }
 
