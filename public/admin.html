@@ -155,8 +155,8 @@
         <!-- SEÇÃO ALUNOS -->
         <div id="usersSection" class="admin-section active">
             <div class="admin-grid">
-                <div class="glass" style="padding: 40px;"><h3>Novo Aluno</h3><form id="createUserForm"><input type="text" id="newName" placeholder="Nome" required><input type="email" id="newEmail" placeholder="E-mail" required><input type="password" id="newPassword" placeholder="Senha" required><select id="newRole" required><option value="student">Aluno</option><option value="admin">Administrador</option></select><button type="submit" class="btn-primary" style="width: 100%;">Criar</button></form></div>
-                <div class="glass" style="padding: 40px;"><h3>Alunos Cadastrados</h3><table><thead><tr><th>Nome</th><th>Status</th><th>Ações</th></tr></thead><tbody id="userList"></tbody></table></div>
+                <div class="glass" style="padding: 40px;"><h3>Novo Aluno</h3><form id="createUserForm"><input type="text" id="newRegistration" placeholder="Matrícula / RM (Opcional)"><input type="text" id="newName" placeholder="Nome" required><input type="email" id="newEmail" placeholder="E-mail" required><input type="password" id="newPassword" placeholder="Senha" required><select id="newRole" required><option value="student">Aluno</option><option value="admin">Administrador</option></select><button type="submit" class="btn-primary" style="width: 100%;">Criar</button></form></div>
+                <div class="glass" style="padding: 40px;"><h3>Alunos Cadastrados</h3><table><thead><tr><th>RM/Matr.</th><th>Nome</th><th>Status</th><th>Ações</th></tr></thead><tbody id="userList"></tbody></table></div>
             </div>
         </div>
 
@@ -248,10 +248,12 @@
             if (financeStudent) financeStudent.innerHTML = '<option value="">Selecionar Aluno</option>';
             users.forEach(u => {
                 if (u.email === 'admin@auraknow.com') return;
-                list.innerHTML += `<tr><td>${u.name}</td><td><span class="status-badge ${u.isActive?'status-active':'status-blocked'}">${u.isActive?'Ativo':'Bloq'}</span></td>
+                const regBadge = u.registration ? `<span style="color:var(--text-dim); font-size:0.8rem;">#${u.registration}</span> ` : '';
+                const regStr = u.registration ? `[${u.registration}] ` : '';
+                list.innerHTML += `<tr><td>${u.registration || '-'}</td><td>${u.name}</td><td><span class="status-badge ${u.isActive?'status-active':'status-blocked'}">${u.isActive?'Ativo':'Bloq'}</span></td>
                 <td><button class="action-btn" onclick="toggleStatus('${u.id}')">Status</button><button class="action-btn danger" onclick="deleteUser('${u.id}')">X</button></td></tr>`;
-                enrollStudent.innerHTML += `<option value="${u.id}">${u.name}</option>`;
-                if (financeStudent) financeStudent.innerHTML += `<option value="${u.id}">${u.name}</option>`;
+                enrollStudent.innerHTML += `<option value="${u.id}">${regStr}${u.name}</option>`;
+                if (financeStudent) financeStudent.innerHTML += `<option value="${u.id}">${regStr}${u.name}</option>`;
             });
         }
 
@@ -361,6 +363,7 @@
         async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = 'login.html'; }
         document.getElementById('createUserForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const registration = document.getElementById('newRegistration').value;
             const name = document.getElementById('newName').value;
             const email = document.getElementById('newEmail').value;
             const password = document.getElementById('newPassword').value;
@@ -369,7 +372,7 @@
             const res = await fetch('/api/admin/create-user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password, role })
+                body: JSON.stringify({ registration, name, email, password, role })
             });
             
             if (res.ok) {

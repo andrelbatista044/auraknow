@@ -238,7 +238,7 @@ app.get('/api/admin/all-results', isAdmin, async (req, res) => {
 
 // --- USUÁRIOS ---
 app.get('/api/admin/users', isAdmin, async (req, res) => {
-    const { data } = await supabase.from('users').select('id, name, email, role, is_active').order('created_at', { ascending: false });
+    const { data } = await supabase.from('users').select('id, name, email, role, is_active, registration').order('created_at', { ascending: false });
     res.json(data.map(u => ({ ...u, isActive: u.is_active })));
 });
 app.post('/api/admin/create-user', isAdmin, async (req, res) => {
