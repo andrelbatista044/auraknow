@@ -210,6 +210,12 @@
             const res = await fetch('/api/me');
             if (!res.ok) window.location.href = 'login.html';
             currentUser = await res.json();
+            
+            if (currentUser.role !== 'student') {
+                window.location.href = 'admin.html';
+                return;
+            }
+
             document.getElementById('userName').innerText = currentUser.name;
             document.getElementById('userAvatarInitials').innerText = currentUser.name.charAt(0).toUpperCase();
             document.getElementById('boletimStudentName').innerText = currentUser.name;

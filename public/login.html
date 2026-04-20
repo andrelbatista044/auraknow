@@ -74,10 +74,10 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    if (data.role === 'admin') {
-                        window.location.href = 'admin.html';
-                    } else {
+                    if (data.role === 'student') {
                         window.location.href = 'area-membros.html';
+                    } else {
+                        window.location.href = 'admin.html';
                     }
                 } else {
                     errorMsg.innerText = data.error || 'Erro ao fazer login';
