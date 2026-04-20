@@ -161,9 +161,32 @@
                             <button class="action-btn danger" onclick="deleteCourse('${c.id}')">Apagar</button>
                         </div>
                     </div>
-                    <div id="modules-${c.id}"></div>`;
+                    <div id="modules-${c.id}"></div>
+                    <div id="no-module-lessons-${c.id}" style="margin-top: 20px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 10px; display: none;">
+                        <h5 style="color: var(--text-dim); margin-bottom: 10px;">⚠️ Aulas Sem Módulo</h5>
+                        <div class="no-module-container"></div>
+                    </div>`;
                 manageList.appendChild(courseDiv);
                 enrollCourse.innerHTML += `<option value="${c.id}">${c.title}</option>`;
+
+                // Carregar Aulas Sem Módulo
+                const noMRes = await fetch(`/api/courses/${c.id}/lessons-no-module`);
+                const noMLessons = await noMRes.json();
+                if (noMLessons.length > 0) {
+                    const nmSection = document.getElementById(`no-module-lessons-${c.id}`);
+                    nmSection.style.display = 'block';
+                    const nmContainer = nmSection.querySelector('.no-module-container');
+                    noMLessons.forEach(l => {
+                        const lDiv = document.createElement('div');
+                        lDiv.className = 'lesson-list-item';
+                        lDiv.innerHTML = `<span>${l.order}. ${l.title}</span>
+                            <div>
+                                <button class="action-btn" onclick="openModal('edit', '${l.id}', null, '${l.title}', '${l.video_url || ''}', \`${l.content || ''}\`, '${l.order}')">Editar / Mover</button>
+                                <button class="action-btn danger" onclick="deleteLesson('${l.id}')">X</button>
+                            </div>`;
+                        nmContainer.appendChild(lDiv);
+                    });
+                }
 
                 // Carregar Módulos
                 const mRes = await fetch(`/api/courses/${c.id}/modules`);

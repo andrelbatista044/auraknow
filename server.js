@@ -104,6 +104,12 @@ app.get('/api/courses/:id/modules', verifyToken, async (req, res) => {
     res.json(data);
 });
 
+// BUSCAR AULAS SEM MÓDULO (Antigas)
+app.get('/api/courses/:id/lessons-no-module', verifyToken, async (req, res) => {
+    const { data } = await supabase.from('lessons').select('*').eq('course_id', req.params.id).is('module_id', null).order('order', { ascending: true });
+    res.json(data);
+});
+
 app.post('/api/admin/modules', isAdmin, async (req, res) => {
     const { data } = await supabase.from('modules').insert([req.body]).select();
     res.json(data[0]);

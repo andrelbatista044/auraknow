@@ -60,11 +60,29 @@
             document.querySelectorAll('.course-item').forEach(i => i.classList.remove('active'));
             element.classList.add('active');
             
-            const res = await fetch(`/api/courses/${courseId}/modules`);
-            const modules = await res.json();
             const lessonList = document.getElementById('lessonList');
             lessonList.innerHTML = '';
 
+            // Carregar Aulas Sem Módulo (Antigas)
+            const noMRes = await fetch(`/api/courses/${courseId}/lessons-no-module`);
+            const noMLessons = await noMRes.json();
+            if (noMLessons.length > 0) {
+                const h = document.createElement('div');
+                h.className = 'module-header';
+                h.textContent = 'Extra / Sem Módulo';
+                lessonList.appendChild(h);
+                noMLessons.forEach(l => {
+                    const lDiv = document.createElement('div');
+                    lDiv.className = 'lesson-item';
+                    lDiv.textContent = `${l.order}. ${l.title}`;
+                    lDiv.onclick = () => playVideo(l.video_url, l.title, l.content, lDiv);
+                    lessonList.appendChild(lDiv);
+                });
+            }
+
+            const res = await fetch(`/api/courses/${courseId}/modules`);
+            const modules = await res.json();
+            
             for (const m of modules) {
                 const h = document.createElement('div');
                 h.className = 'module-header';
