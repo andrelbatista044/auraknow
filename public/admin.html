@@ -20,62 +20,32 @@
         .action-btn { background: none; border: 1px solid var(--primary); color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; margin-right: 5px; }
         .action-btn.danger { border-color: #e74c3c; color: #e74c3c; }
         .action-btn.success { border-color: #2ecc71; color: #2ecc71; }
+        .action-btn.info { border-color: #3498db; color: #3498db; }
         input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 8px; font-size: 1rem; }
+        
         .subject-box { background: rgba(153, 102, 204, 0.05); padding: 20px; border-radius: 20px; border: 1px solid rgba(153, 102, 204, 0.2); margin-top: 20px; }
         .module-box { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; border: 1px solid var(--glass-border); margin-top: 15px; margin-left: 20px; }
         .lesson-list-item { background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; margin-left: 20px; border: 1px solid rgba(255,255,255,0.05); }
+        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: var(--bg-dark); border: 1px solid var(--glass-border); padding: 40px; border-radius: 24px; width: 600px; max-width: 90%; }
-        .modal-content h3 { margin-bottom: 20px; color: var(--primary); }
+        .modal-content { background: var(--bg-dark); border: 1px solid var(--glass-border); padding: 40px; border-radius: 24px; width: 800px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
+        .question-card { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; border: 1px solid var(--glass-border); margin-bottom: 20px; }
     </style>
 </head>
 <body>
     <div class="bg-mesh"></div>
 
-    <!-- MODAL PARA AULAS -->
-    <div id="lessonModal" class="modal">
+    <!-- MODAL DE PROVA -->
+    <div id="quizModal" class="modal">
         <div class="modal-content glass">
-            <h3 id="lessonModalTitle">Aula</h3>
-            <input type="hidden" id="editLessonId">
-            <label style="font-size: 0.8rem; color: var(--text-dim);">Vincular ao Módulo:</label>
-            <select id="lessonModuleSelect"></select>
-            <input type="text" id="editLessonTitle" placeholder="Título da Aula">
-            <input type="text" id="editLessonVideo" placeholder="URL do Vídeo">
-            <textarea id="editLessonContent" placeholder="Conteúdo Escrito" style="height: 150px;"></textarea>
-            <input type="number" id="editLessonOrder" placeholder="Ordem">
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-primary" onclick="saveLesson()" style="flex: 1;">Salvar</button>
-                <button class="btn-secondary" onclick="closeModals()">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL PARA MÓDULOS -->
-    <div id="moduleModal" class="modal">
-        <div class="modal-content glass">
-            <h3 id="moduleModalTitle">Módulo</h3>
-            <input type="hidden" id="editModuleId">
-            <label style="font-size: 0.8rem; color: var(--text-dim);">Vincular à Matéria:</label>
-            <select id="moduleSubjectSelect"></select>
-            <input type="text" id="editModuleTitle" placeholder="Nome do Módulo">
-            <input type="number" id="editModuleOrder" placeholder="Ordem">
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-primary" onclick="saveModule()" style="flex: 1;">Salvar</button>
-                <button class="btn-secondary" onclick="closeModals()">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL PARA MATÉRIAS -->
-    <div id="subjectModal" class="modal">
-        <div class="modal-content glass">
-            <h3 id="subjectModalTitle">Matéria</h3>
-            <input type="hidden" id="editSubjectId">
-            <input type="hidden" id="subjectCourseId">
-            <input type="text" id="editSubjectTitle" placeholder="Nome da Matéria">
-            <input type="number" id="editSubjectOrder" placeholder="Ordem">
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-primary" onclick="saveSubject()" style="flex: 1;">Salvar</button>
+            <h3>Criar Avaliação do Módulo</h3>
+            <input type="hidden" id="quizModuleId">
+            <input type="text" id="quizTitle" placeholder="Título da Prova">
+            <input type="number" id="quizPassingScore" placeholder="Nota de Corte (70)">
+            <div id="questionsContainer"></div>
+            <button class="action-btn success" onclick="addQuestion()">+ Questão</button>
+            <div style="display: flex; gap: 10px; margin-top: 30px;">
+                <button class="btn-primary" onclick="saveQuiz()" style="flex: 1;">Criar Prova</button>
                 <button class="btn-secondary" onclick="closeModals()">Cancelar</button>
             </div>
         </div>
@@ -86,42 +56,65 @@
     <main class="container">
         <div class="admin-tabs">
             <button class="tab-btn active" onclick="showSection('users')">Alunos</button>
-            <button class="tab-btn" onclick="showSection('courses')">Conteúdo Hierárquico</button>
+            <button class="tab-btn" onclick="showSection('courses')">Conteúdo</button>
+            <button class="tab-btn" onclick="showSection('results')">Boletim Geral</button>
         </div>
 
+        <!-- SEÇÃO ALUNOS -->
         <div id="usersSection" class="admin-section active">
             <div class="admin-grid">
                 <div class="glass" style="padding: 40px;"><h3>Novo Aluno</h3><form id="createUserForm"><input type="text" id="newName" placeholder="Nome" required><input type="email" id="newEmail" placeholder="E-mail" required><input type="password" id="newPassword" placeholder="Senha" required><button type="submit" class="btn-primary" style="width: 100%;">Criar</button></form></div>
-                <div class="glass" style="padding: 40px;"><h3>Lista de Alunos</h3><table><thead><tr><th>Nome</th><th>Status</th><th>Ações</th></tr></thead><tbody id="userList"></tbody></table></div>
+                <div class="glass" style="padding: 40px;"><h3>Alunos Cadastrados</h3><table><thead><tr><th>Nome</th><th>Status</th><th>Ações</th></tr></thead><tbody id="userList"></tbody></table></div>
             </div>
         </div>
 
+        <!-- SEÇÃO CONTEÚDO -->
         <div id="coursesSection" class="admin-section">
             <div class="admin-grid">
-                <div class="glass" style="padding: 40px;">
-                    <h3>Novo Curso</h3>
-                    <form id="createCourseForm"><input type="text" id="courseTitleInput" placeholder="Nome do Curso" required><button type="submit" class="btn-primary" style="width: 100%;">Criar</button></form>
-                    <hr style="opacity: 0.1; margin: 40px 0;">
-                    <h3>Matrícula</h3>
-                    <form id="enrollForm"><select id="enrollStudent" required></select><select id="enrollCourse" required></select><button type="submit" class="btn-primary" style="width: 100%;">Matricular</button></form>
-                </div>
-                <div class="glass" style="padding: 40px;">
-                    <h3>Gestão de Conteúdo</h3>
-                    <div id="courseManagementList"></div>
-                </div>
+                <div class="glass" style="padding: 40px;"><h3>Novo Curso</h3><form id="createCourseForm"><input type="text" id="courseTitleInput" placeholder="Nome do Curso" required><button type="submit" class="btn-primary" style="width: 100%;">Criar</button></form><hr style="opacity: 0.1; margin: 40px 0;"><h3>Matrícula</h3><form id="enrollForm"><select id="enrollStudent" required></select><select id="enrollCourse" required></select><button type="submit" class="btn-primary" style="width: 100%;">Matricular</button></form></div>
+                <div class="glass" style="padding: 40px;"><h3>Gestão de Conteúdo</h3><div id="courseManagementList"></div></div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO RESULTADOS (BOLETIM) -->
+        <div id="resultsSection" class="admin-section">
+            <div class="glass" style="padding: 40px;">
+                <h3>Resultados das Avaliações</h3>
+                <p style="color: var(--text-dim); margin-bottom: 20px;">Acompanhe o desempenho de todos os alunos.</p>
+                <table id="resultsTable">
+                    <thead><tr><th>Aluno</th><th>Prova</th><th>Nota</th><th>Status</th><th>Data</th></tr></thead>
+                    <tbody id="resultsList"></tbody>
+                </table>
             </div>
         </div>
     </main>
 
     <script>
-        let cachedSubjects = [];
-        let cachedModules = [];
+        let cachedSubjects = []; let cachedModules = [];
 
         function showSection(section) {
             document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(section + 'Section').classList.add('active');
             event.target.classList.add('active');
+            if (section === 'results') loadAllResults();
+        }
+
+        async function loadAllResults() {
+            // Em um sistema real, o admin precisa de uma rota especial. Vou usar a mesma mas o server vai tratar.
+            const res = await fetch('/api/admin/all-results'); // Vou criar essa rota agora
+            const results = await res.json();
+            const list = document.getElementById('resultsList');
+            list.innerHTML = '';
+            results.forEach(r => {
+                list.innerHTML += `<tr>
+                    <td>${r.users.name}</td>
+                    <td>${r.quizzes.title}</td>
+                    <td>${r.score}%</td>
+                    <td><span class="status-badge ${r.passed?'status-active':'status-blocked'}">${r.passed?'Aprovado':'Reprovado'}</span></td>
+                    <td>${new Date(r.completed_at).toLocaleDateString()}</td>
+                </tr>`;
+            });
         }
 
         async function loadUsers() {
@@ -129,8 +122,7 @@
             const users = await res.json();
             const list = document.getElementById('userList');
             const enrollStudent = document.getElementById('enrollStudent');
-            list.innerHTML = '';
-            enrollStudent.innerHTML = '<option value="">Selecionar Aluno</option>';
+            list.innerHTML = ''; enrollStudent.innerHTML = '<option value="">Selecionar Aluno</option>';
             users.forEach(u => {
                 if (u.email === 'admin@auraknow.com') return;
                 list.innerHTML += `<tr><td>${u.name}</td><td><span class="status-badge ${u.isActive?'status-active':'status-blocked'}">${u.isActive?'Ativo':'Bloq'}</span></td>
@@ -139,63 +131,24 @@
             });
         }
 
-        async function toggleStatus(userId) { await fetch('/api/admin/toggle-status', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId})}); loadUsers(); }
-        async function deleteUser(userId) { if(confirm('Apagar?')) { await fetch('/api/admin/delete-user', {method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId})}); loadUsers(); } }
-
         async function loadCourses() {
             const res = await fetch('/api/courses');
             const courses = await res.json();
             const manageList = document.getElementById('courseManagementList');
             const enrollCourse = document.getElementById('enrollCourse');
-            manageList.innerHTML = '';
-            enrollCourse.innerHTML = '<option value="">Selecionar Curso</option>';
+            manageList.innerHTML = ''; enrollCourse.innerHTML = '<option value="">Selecionar Curso</option>';
             cachedSubjects = []; cachedModules = [];
 
             for (const c of courses) {
                 const courseDiv = document.createElement('div');
-                courseDiv.className = 'glass';
-                courseDiv.style.padding = '20px';
-                courseDiv.style.marginBottom = '30px';
-                courseDiv.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px;">
+                courseDiv.className = 'glass'; courseDiv.style.padding = '20px'; courseDiv.style.marginBottom = '30px';
+                courseDiv.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px;">
                         <h3 style="margin: 0; color: var(--primary);">${c.title}</h3>
-                        <div>
-                            <button class="action-btn success" onclick="openSubjectModal('create', '${c.id}')">+ Matéria</button>
-                            <button class="action-btn" onclick="editCourse('${c.id}', '${c.title}')">Renomear</button>
-                            <button class="action-btn danger" onclick="deleteCourse('${c.id}')">X</button>
-                        </div>
-                    </div>
-                    <div id="orphans-${c.id}"></div>
-                    <div id="subjects-${c.id}"></div>`;
+                        <div><button class="action-btn success" onclick="openSubjectModal('create', '${c.id}')">+ Matéria</button><button class="action-btn" onclick="editCourse('${c.id}', '${c.title}')">Renomear</button><button class="action-btn danger" onclick="deleteCourse('${c.id}')">X</button></div>
+                    </div><div id="subjects-${c.id}"></div>`;
                 manageList.appendChild(courseDiv);
                 enrollCourse.innerHTML += `<option value="${c.id}">${c.title}</option>`;
 
-                // Legado / Órfãos
-                const nmModRes = await fetch(`/api/courses/${c.id}/orphan-modules`);
-                const nmMods = await nmModRes.json();
-                const nmLessRes = await fetch(`/api/courses/${c.id}/orphan-lessons`);
-                const nmLess = await nmLessRes.json();
-                const orphanCont = document.getElementById(`orphans-${c.id}`);
-
-                if(nmMods.length > 0 || nmLess.length > 0) {
-                    orphanCont.innerHTML = '<div style="margin-top:10px; color:#ff9f43; font-size:0.7rem; border:1px dashed #ff9f43; padding:10px; border-radius:10px;">⚠️ CONTEÚDO PARA VINCULAR</div>';
-                    nmMods.forEach(m => {
-                        const div = document.createElement('div');
-                        div.className = 'module-box';
-                        div.style.borderColor = '#ff9f43';
-                        div.innerHTML = `<span>Módulo: ${m.title}</span> <button class="action-btn" onclick="openModuleModal('edit', '${m.id}', null, '${m.title}', '${m.order}')">Vincular Matéria</button>`;
-                        orphanCont.appendChild(div);
-                    });
-                    nmLess.forEach(l => {
-                        const div = document.createElement('div');
-                        div.className = 'lesson-list-item';
-                        div.style.borderColor = '#ff9f43';
-                        div.innerHTML = `<span>Aula: ${l.title}</span> <button class="action-btn" onclick="openLessonModal('edit', '${l.id}', null, '${l.title}', '${l.video_url||''}', \`${l.content||''}\`, '${l.order}')">Vincular Módulo</button>`;
-                        orphanCont.appendChild(div);
-                    });
-                }
-
-                // Matérias
                 const sRes = await fetch(`/api/courses/${c.id}/subjects`);
                 const subjects = await sRes.json();
                 const sCont = document.getElementById(`subjects-${c.id}`);
@@ -204,19 +157,10 @@
                     cachedSubjects.push({ id: s.id, title: s.title, course: c.title });
                     const sDiv = document.createElement('div');
                     sDiv.className = 'subject-box';
-                    sDiv.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <h4 style="margin: 0; color: #9b59b6;">📖 ${s.title}</h4>
-                            <div>
-                                <button class="action-btn success" onclick="openModuleModal('create', null, '${s.id}')">+ Módulo</button>
-                                <button class="action-btn" onclick="openSubjectModal('edit', '${c.id}', '${s.id}', '${s.title}', '${s.order}')">Editar</button>
-                                <button class="action-btn danger" onclick="deleteSubject('${s.id}')">X</button>
-                            </div>
-                        </div>
-                        <div id="modules-${s.id}"></div>`;
+                    sDiv.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center;"><h4 style="margin: 0; color: #9b59b6;">📖 ${s.title}</h4>
+                        <div><button class="action-btn success" onclick="openModuleModal('create', null, '${s.id}')">+ Módulo</button><button class="action-btn danger" onclick="deleteSubject('${s.id}')">X</button></div></div><div id="modules-${s.id}"></div>`;
                     sCont.appendChild(sDiv);
 
-                    // Módulos
                     const mRes = await fetch(`/api/subjects/${s.id}/modules`);
                     const modules = await mRes.json();
                     const mCont = document.getElementById(`modules-${s.id}`);
@@ -224,107 +168,52 @@
                         cachedModules.push({ id: m.id, title: m.title, subject: s.title });
                         const mDiv = document.createElement('div');
                         mDiv.className = 'module-box';
-                        mDiv.innerHTML = `
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <strong>📦 ${m.title}</strong>
-                                <div>
-                                    <button class="action-btn success" onclick="openLessonModal('create', null, '${m.id}')">+ Aula</button>
-                                    <button class="action-btn" onclick="openModuleModal('edit', '${m.id}', '${s.id}', '${m.title}', '${m.order}')">Editar</button>
-                                    <button class="action-btn danger" onclick="deleteModule('${m.id}')">X</button>
-                                </div>
-                            </div>
-                            <div id="lessons-${m.id}"></div>`;
+                        mDiv.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center;"><strong>📦 ${m.title}</strong>
+                                <div><button class="action-btn info" onclick="openQuizModal('${m.id}')">+ Prova</button><button class="action-btn success" onclick="openLessonModal('create', null, '${m.id}')">+ Aula</button><button class="action-btn danger" onclick="deleteModule('${m.id}')">X</button></div></div><div id="lessons-${m.id}"></div>`;
                         mCont.appendChild(mDiv);
 
-                        // Aulas
                         const lRes = await fetch(`/api/modules/${m.id}/lessons`);
                         const lessons = await lRes.json();
                         const lCont = document.getElementById(`lessons-${m.id}`);
                         lessons.forEach(l => {
-                            lCont.innerHTML += `<div class="lesson-list-item">
-                                <span>${l.order}. ${l.title}</span>
-                                <div>
-                                    <button class="action-btn" onclick="openLessonModal('edit', '${l.id}', '${m.id}', '${l.title}', '${l.video_url||''}', \`${l.content||''}\`, '${l.order}')">Editar</button>
-                                    <button class="action-btn danger" onclick="deleteLesson('${l.id}')">X</button>
-                                </div>
-                            </div>`;
+                            lCont.innerHTML += `<div class="lesson-list-item"><span>${l.order}. ${l.title}</span><div><button class="action-btn" onclick="openLessonModal('edit', '${l.id}', '${m.id}', '${l.title}', '${l.video_url||''}', \`${l.content||''}\`, '${l.order}')">Editar</button><button class="action-btn danger" onclick="deleteLesson('${l.id}')">X</button></div></div>`;
                         });
                     }
                 }
             }
         }
 
-        // --- GESTÃO DE MODAIS ---
+        // --- GESTÃO DE PROVAS ---
+        function openQuizModal(moduleId) {
+            document.getElementById('quizModuleId').value = moduleId;
+            document.getElementById('questionsContainer').innerHTML = '';
+            addQuestion();
+            document.getElementById('quizModal').style.display = 'flex';
+        }
+        function addQuestion() {
+            const container = document.getElementById('questionsContainer');
+            const qCount = container.children.length + 1;
+            const qDiv = document.createElement('div');
+            qDiv.className = 'question-card';
+            qDiv.innerHTML = `<h4>Questão ${qCount}</h4>
+                <input type="text" placeholder="Enunciado" class="q-text">
+                <input type="text" placeholder="Opção 1" class="q-opt"><input type="text" placeholder="Opção 2" class="q-opt">
+                <input type="text" placeholder="Opção 3" class="q-opt"><input type="text" placeholder="Opção 4" class="q-opt">
+                <select class="q-correct"><option value="0">Opção 1 correta</option><option value="1">Opção 2 correta</option><option value="2">Opção 3 correta</option><option value="3">Opção 4 correta</option></select>`;
+            container.appendChild(qDiv);
+        }
+        async function saveQuiz() {
+            const questions = [];
+            document.querySelectorAll('.question-card').forEach((card, index) => {
+                const options = Array.from(card.querySelectorAll('.q-opt')).map(i => i.value).filter(v => v !== '');
+                questions.push({ text: card.querySelector('.q-text').value, options: options, correct_option: parseInt(card.querySelector('.q-correct').value), order: index + 1 });
+            });
+            await fetch('/api/admin/quizzes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ module_id: document.getElementById('quizModuleId').value, title: document.getElementById('quizTitle').value, passing_score: parseInt(document.getElementById('quizPassingScore').value), questions: questions }) });
+            alert('Prova Criada!'); closeModals();
+        }
+
         function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
-
-        // Matéria
-        function openSubjectModal(mode, courseId, id='', title='', order='1') {
-            document.getElementById('subjectModalTitle').textContent = mode==='create'?'Nova Matéria':'Editar Matéria';
-            document.getElementById('editSubjectId').value = id;
-            document.getElementById('subjectCourseId').value = courseId;
-            document.getElementById('editSubjectTitle').value = title;
-            document.getElementById('editSubjectOrder').value = order;
-            document.getElementById('subjectModal').style.display = 'flex';
-        }
-        async function saveSubject() {
-            const id = document.getElementById('editSubjectId').value;
-            const payload = { course_id: document.getElementById('subjectCourseId').value, title: document.getElementById('editSubjectTitle').value, order: document.getElementById('editSubjectOrder').value };
-            if(id) await fetch(`/api/admin/subjects/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) }); // Fix: Added PUT to server or use POST logic
-            else await fetch('/api/admin/subjects', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-            closeModals(); loadCourses();
-        }
-
-        // Módulo
-        function openModuleModal(mode, id='', subjectId='', title='', order='1') {
-            document.getElementById('moduleModalTitle').textContent = mode==='create'?'Novo Módulo':'Editar Módulo';
-            document.getElementById('editModuleId').value = id;
-            const select = document.getElementById('moduleSubjectSelect');
-            select.innerHTML = '<option value="">Sem Matéria (Legado)</option>';
-            cachedSubjects.forEach(s => { select.innerHTML += `<option value="${s.id}" ${s.id===subjectId?'selected':''}>[${s.course}] ${s.title}</option>`; });
-            document.getElementById('editModuleTitle').value = title;
-            document.getElementById('editModuleOrder').value = order;
-            document.getElementById('moduleModal').style.display = 'flex';
-        }
-        async function saveModule() {
-            const id = document.getElementById('editModuleId').value;
-            const payload = { subject_id: document.getElementById('moduleSubjectSelect').value || null, title: document.getElementById('editModuleTitle').value, order: document.getElementById('editModuleOrder').value };
-            if(id) await fetch(`/api/admin/modules/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-            else await fetch('/api/admin/modules', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-            closeModals(); loadCourses();
-        }
-
-        // Aula
-        function openLessonModal(mode, id='', moduleId='', title='', url='', content='', order='1') {
-            document.getElementById('lessonModalTitle').textContent = mode==='create'?'Nova Aula':'Editar Aula';
-            document.getElementById('editLessonId').value = id;
-            const select = document.getElementById('lessonModuleSelect');
-            select.innerHTML = '<option value="">Sem Módulo</option>';
-            cachedModules.forEach(m => { select.innerHTML += `<option value="${m.id}" ${m.id===moduleId?'selected':''}>[${m.subject}] ${m.title}</option>`; });
-            document.getElementById('editLessonTitle').value = title;
-            document.getElementById('editLessonVideo').value = url;
-            document.getElementById('editLessonContent').value = content;
-            document.getElementById('editLessonOrder').value = order;
-            document.getElementById('lessonModal').style.display = 'flex';
-        }
-        async function saveLesson() {
-            const id = document.getElementById('editLessonId').value;
-            const payload = { module_id: document.getElementById('lessonModuleSelect').value || null, title: document.getElementById('editLessonTitle').value, video_url: document.getElementById('editLessonVideo').value, content: document.getElementById('editLessonContent').value, order: document.getElementById('editLessonOrder').value };
-            if(id) await fetch(`/api/admin/lessons/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-            else await fetch('/api/admin/lessons', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
-            closeModals(); loadCourses();
-        }
-
-        // Outros
-        async function deleteSubject(id) { if(confirm('Apagar matéria?')) { await fetch(`/api/admin/subjects/${id}`, {method:'DELETE'}); loadCourses(); } }
-        async function deleteModule(id) { if(confirm('Apagar módulo?')) { await fetch(`/api/admin/modules/${id}`, {method:'DELETE'}); loadCourses(); } }
-        async function deleteLesson(id) { if(confirm('Apagar aula?')) { await fetch(`/api/admin/lessons/${id}`, {method:'DELETE'}); loadCourses(); } }
-        async function editCourse(id, old) { const n = prompt('Novo nome:', old); if(n) { await fetch(`/api/admin/courses/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title:n})}); loadCourses(); } }
-        async function deleteCourse(id) { if(confirm('Apagar curso?')) { await fetch(`/api/admin/courses/${id}`, {method:'DELETE'}); loadCourses(); } }
-
-        document.getElementById('createCourseForm').onsubmit = async (e) => { e.preventDefault(); await fetch('/api/admin/courses', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title:document.getElementById('courseTitleInput').value})}); document.getElementById('createCourseForm').reset(); loadCourses(); };
-        document.getElementById('enrollForm').onsubmit = async (e) => { e.preventDefault(); await fetch('/api/admin/enroll', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:document.getElementById('enrollStudent').value, course_id:document.getElementById('enrollCourse').value})}); alert('Matriculado!'); };
-        async function logout() { await fetch('/api/logout', {method:'POST'}); window.location.href = 'login.html'; }
-
+        async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = 'login.html'; }
         loadUsers(); loadCourses();
     </script>
 </body>

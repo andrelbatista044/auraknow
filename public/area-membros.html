@@ -14,32 +14,76 @@
         .course-item:hover { background: rgba(255,255,255,0.05); }
         .course-item.active { background: var(--primary); color: white; border-color: var(--primary); }
         
-        /* Hierarquia Sidebar V3 */
         .subject-title { font-size: 0.95rem; color: #9b59b6; font-weight: 800; margin-top: 25px; margin-bottom: 10px; padding-left: 10px; border-left: 4px solid #9b59b6; text-transform: uppercase; }
-        .module-title { font-size: 0.8rem; color: var(--text-dim); font-weight: 700; margin-top: 15px; margin-bottom: 5px; padding-left: 15px; display: flex; align-items: center; gap: 8px; }
-        .module-title::before { content: '📦'; font-size: 0.7rem; }
+        .module-title { font-size: 0.8rem; color: var(--text-dim); font-weight: 700; margin-top: 15px; margin-bottom: 5px; padding-left: 15px; display: flex; align-items: center; justify-content: space-between; }
+        .module-title.locked { opacity: 0.4; pointer-events: none; }
         .lesson-item { padding: 10px 15px; font-size: 0.8rem; color: var(--text-dim); cursor: pointer; border-radius: 8px; margin-left: 20px; margin-bottom: 2px; transition: all 0.2s; }
         .lesson-item:hover { color: white; background: rgba(255,255,255,0.03); }
         .lesson-item.active { color: white; background: rgba(153, 102, 204, 0.2); font-weight: 600; border-left: 3px solid var(--primary); }
-        
+        .quiz-btn { padding: 8px 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 0.75rem; cursor: pointer; margin-left: 20px; margin-top: 10px; width: calc(100% - 40px); }
+
         .main-content { flex: 1; overflow-y: auto; padding: 50px; position: relative; }
         .video-container { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 24px; overflow: hidden; margin-bottom: 30px; box-shadow: var(--shadow); }
         .video-container iframe { width: 100%; height: 100%; border: none; }
-        .user-profile { padding: 30px; border-top: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; }
-        .course-section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--primary); margin-bottom: 15px; margin-top: 10px; font-weight: 700; }
-        .empty-state { text-align: center; margin-top: 100px; color: var(--text-dim); }
+        
+        /* Modal Prova */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: var(--bg-dark); padding: 40px; border-radius: 24px; border: 1px solid var(--glass-border); width: 600px; max-width: 90%; }
+        .q-box { margin-bottom: 30px; }
+        .opt { display: block; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 12px; margin-top: 10px; cursor: pointer; border: 1px solid transparent; transition: 0.3s; }
+        .opt:hover { background: rgba(255,255,255,0.1); }
+        .opt.selected { border-color: var(--primary); background: rgba(153, 102, 204, 0.2); }
     </style>
 </head>
 <body>
+    <div id="quizView" class="modal">
+        <div class="modal-content glass">
+            <h2 id="quizModalTitle">Carregando Prova...</h2>
+            <div id="quizProgress" style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 20px;">Questão 1 de X</div>
+            <div id="quizBody"></div>
+            <div style="display: flex; gap: 10px; margin-top: 30px;">
+                <button id="nextBtn" class="btn-primary" onclick="submitQuiz()" style="flex: 1; display: none;">Finalizar Prova</button>
+                <button class="btn-secondary" onclick="closeQuiz()">Sair</button>
+            </div>
+        </div>
+    </div>
+
+    <aside class="sidebar">
+        <div class="sidebar-header"><a href="index.html" class="logo" style="font-size: 1.5rem;">Aura<span>Know</span></a></div>
+        <div class="content-list">
+            <div class="course-section-title">Meus Cursos</div>
+            <div id="enrollmentList"></div>
+            <div id="lessonList"></div>
+        </div>
+        <div class="user-profile">
+            <div id="userName" style="font-weight: bold; font-size: 0.9rem;">...</div>
+            <button onclick="logout()" style="background: none; border: none; color: var(--text-dim); cursor: pointer;">🚪</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div id="emptyView" class="empty-state"><h2>Selecione um curso para começar.</h2></div>
+        <div id="mainView" style="display: none;">
+            <div class="video-container"><iframe id="videoPlayer" allowfullscreen></iframe></div>
+            <h1 id="lessonTitle">Título</h1>
+            <div class="glass" style="padding: 40px;"><h3>Sobre a aula</h3><p id="lessonContent" style="color: var(--text-dim); margin-top: 15px;"></p></div>
+        </div>
+    </main>
+
     <script>
+        let currentQuiz = null; let userAnswers = {}; let quizResults = [];
+
         async function checkAuth() {
-            try {
-                const res = await fetch('/api/me');
-                if (!res.ok) { window.location.href = 'login.html'; return; }
-                const user = await res.json();
-                document.getElementById('userName').innerText = user.name;
-                loadEnrollments();
-            } catch (e) { window.location.href = 'login.html'; }
+            const res = await fetch('/api/me');
+            if (!res.ok) window.location.href = 'login.html';
+            const user = await res.json();
+            document.getElementById('userName').innerText = user.name;
+            loadResults(); loadEnrollments();
+        }
+
+        async function loadResults() {
+            const res = await fetch('/api/quiz-results');
+            quizResults = await res.json();
         }
 
         async function loadEnrollments() {
@@ -49,8 +93,7 @@
             list.innerHTML = '';
             courses.forEach(c => {
                 const div = document.createElement('div');
-                div.className = 'course-item';
-                div.innerHTML = `<strong>${c.title}</strong>`;
+                div.className = 'course-item'; div.innerHTML = `<strong>${c.title}</strong>`;
                 div.onclick = () => selectCourse(c.id, div);
                 list.appendChild(div);
             });
@@ -59,58 +102,52 @@
         async function selectCourse(courseId, element) {
             document.querySelectorAll('.course-item').forEach(i => i.classList.remove('active'));
             element.classList.add('active');
-            
             const lessonList = document.getElementById('lessonList');
             lessonList.innerHTML = '';
 
-            // 1. CARREGAR MATÉRIAS
             const sRes = await fetch(`/api/courses/${courseId}/subjects`);
             const subjects = await sRes.json();
 
+            let previousModulePassed = true; // Primeiro módulo sempre liberado
+
             for (const s of subjects) {
                 const sHeader = document.createElement('div');
-                sHeader.className = 'subject-title';
-                sHeader.textContent = s.title;
+                sHeader.className = 'subject-title'; sHeader.textContent = s.title;
                 lessonList.appendChild(sHeader);
 
-                // 2. CARREGAR MÓDULOS DA MATÉRIA
                 const mRes = await fetch(`/api/subjects/${s.id}/modules`);
                 const modules = await mRes.json();
                 for (const m of modules) {
                     const mHeader = document.createElement('div');
-                    mHeader.className = 'module-title';
-                    mHeader.textContent = m.title;
+                    mHeader.className = 'module-title' + (previousModulePassed ? '' : ' locked');
+                    mHeader.innerHTML = `<span>${m.title}</span> ${previousModulePassed ? '' : '🔒'}`;
                     lessonList.appendChild(mHeader);
 
-                    // 3. CARREGAR AULAS DO MÓDULO
-                    const lRes = await fetch(`/api/modules/${m.id}/lessons`);
-                    const lessons = await lRes.json();
-                    lessons.forEach(l => {
-                        const lDiv = document.createElement('div');
-                        lDiv.className = 'lesson-item';
-                        lDiv.textContent = `${l.order}. ${l.title}`;
-                        lDiv.onclick = () => playVideo(l.video_url, l.title, l.content, lDiv);
-                        lessonList.appendChild(lDiv);
-                    });
-                }
-            }
+                    if (previousModulePassed) {
+                        const lRes = await fetch(`/api/modules/${m.id}/lessons`);
+                        const lessons = await lRes.json();
+                        lessons.forEach(l => {
+                            const lDiv = document.createElement('div');
+                            lDiv.className = 'lesson-item'; lDiv.textContent = `${l.order}. ${l.title}`;
+                            lDiv.onclick = () => playVideo(l.video_url, l.title, l.content, lDiv);
+                            lessonList.appendChild(lDiv);
+                        });
 
-            // CARREGAR ÓRFÃOS (Conteúdo Legado V2)
-            const orphanLessRes = await fetch(`/api/courses/${courseId}/orphan-lessons`);
-            const orphanLess = await orphanLessRes.json();
-            if(orphanLess.length > 0) {
-                const h = document.createElement('div');
-                h.className = 'subject-title';
-                h.style.color = '#ff9f43';
-                h.textContent = 'Aulas Pendentes';
-                lessonList.appendChild(h);
-                orphanLess.forEach(l => {
-                    const lDiv = document.createElement('div');
-                    lDiv.className = 'lesson-item';
-                    lDiv.textContent = l.title;
-                    lDiv.onclick = () => playVideo(l.video_url, l.title, l.content, lDiv);
-                    lessonList.appendChild(lDiv);
-                });
+                        const qRes = await fetch(`/api/modules/${m.id}/quiz`);
+                        const quiz = await qRes.json();
+                        if (quiz) {
+                            const qBtn = document.createElement('button');
+                            qBtn.className = 'quiz-btn';
+                            const attempt = quizResults.find(r => r.quiz_id === quiz.id);
+                            qBtn.textContent = attempt ? (attempt.passed ? `✅ Aprovado (${attempt.score}%)` : `❌ Reprovado (${attempt.score}%) - Tentar Novamente`) : '📝 Fazer Prova Final';
+                            qBtn.onclick = () => startQuiz(quiz);
+                            lessonList.appendChild(qBtn);
+                            previousModulePassed = attempt ? attempt.passed : false;
+                        } else {
+                            previousModulePassed = true; // Sem prova, libera o próximo
+                        }
+                    }
+                }
             }
         }
 
@@ -120,52 +157,44 @@
             document.getElementById('mainView').style.display = 'block';
             document.getElementById('emptyView').style.display = 'none';
             document.getElementById('lessonTitle').textContent = title;
-            
-            const formattedContent = (content || 'Sem descrição.')
-                .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color: var(--primary);">$1</a>')
-                .replace(/\n/g, '<br>');
-            document.getElementById('lessonContent').innerHTML = formattedContent;
-            
-            const videoContainer = document.querySelector('.video-container');
-            if (url && url.trim() !== '') {
-                videoContainer.style.display = 'block';
-                let embedUrl = url;
-                if (url.includes('youtube.com/watch?v=')) embedUrl = url.replace('watch?v=', 'embed/');
-                if (url.includes('youtu.be/')) embedUrl = url.replace('youtu.be/', 'youtube.com/embed/');
-                document.getElementById('videoPlayer').src = embedUrl;
-            } else {
-                videoContainer.style.display = 'none';
-                document.getElementById('videoPlayer').src = '';
-            }
+            document.getElementById('lessonContent').innerHTML = (content || '').replace(/\n/g, '<br>');
+            document.getElementById('videoPlayer').src = url ? url.replace('watch?v=', 'embed/') : '';
         }
 
+        function startQuiz(quiz) {
+            currentQuiz = quiz; userAnswers = {};
+            document.getElementById('quizModalTitle').textContent = quiz.title;
+            const body = document.getElementById('quizBody');
+            body.innerHTML = '';
+            quiz.questions.forEach((q, i) => {
+                const qDiv = document.createElement('div'); qDiv.className = 'q-box';
+                qDiv.innerHTML = `<p><strong>${i+1}. ${q.text}</strong></p>`;
+                q.options.forEach((opt, oi) => {
+                    const optDiv = document.createElement('div'); optDiv.className = 'opt';
+                    optDiv.textContent = opt;
+                    optDiv.onclick = () => {
+                        qDiv.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
+                        optDiv.classList.add('selected');
+                        userAnswers[q.id] = oi;
+                        if (Object.keys(userAnswers).length === quiz.questions.length) document.getElementById('nextBtn').style.display = 'block';
+                    };
+                    qDiv.appendChild(optDiv);
+                });
+                body.appendChild(qDiv);
+            });
+            document.getElementById('quizView').style.display = 'flex';
+        }
+
+        async function submitQuiz() {
+            const res = await fetch(`/api/quizzes/${currentQuiz.id}/submit`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ answers: userAnswers }) });
+            const result = await res.json();
+            alert(`Sua nota: ${result.score}% - ${result.passed ? 'Parabéns, você passou!' : 'Infelizmente você não atingiu a nota mínima.'}`);
+            location.reload();
+        }
+
+        function closeQuiz() { document.getElementById('quizView').style.display = 'none'; }
         async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = 'login.html'; }
         window.onload = checkAuth;
     </script>
-
-    <aside class="sidebar">
-        <div class="sidebar-header"><a href="index.html" class="logo" style="font-size: 1.5rem;">Aura<span>Know</span></a></div>
-        <div class="content-list">
-            <div class="course-section-title">Cursos Ativos</div>
-            <div id="enrollmentList"></div>
-            <div id="lessonList"></div>
-        </div>
-        <div class="user-profile">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 40px; height: 40px; background: var(--primary); border-radius: 50%;"></div>
-                <div><div id="userName" style="font-weight: bold; font-size: 0.9rem;">...</div><div style="font-size: 0.7rem; color: var(--text-dim);">Aluno</div></div>
-            </div>
-            <button onclick="logout()" style="background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 1.2rem;">🚪</button>
-        </div>
-    </aside>
-
-    <main class="main-content">
-        <div id="emptyView" class="empty-state"><h2>Selecione um curso para começar.</h2></div>
-        <div id="mainView" style="display: none;">
-            <div class="video-container"><iframe id="videoPlayer" allowfullscreen></iframe></div>
-            <h1 id="lessonTitle">...</h1>
-            <div class="glass" style="padding: 40px;"><h3>Descrição</h3><p id="lessonContent" style="color: var(--text-dim); margin-top: 15px;"></p></div>
-        </div>
-    </main>
 </body>
 </html>
