@@ -208,6 +208,28 @@ app.post('/api/admin/enroll', isAdmin, async (req, res) => {
     res.json({ success: true }); 
 });
 
+// --- ADMIN FINANCEIRO ---
+app.get('/api/admin/finance', isAdmin, async (req, res) => {
+    const { data } = await supabase.from('payments').select('*, users(name)').order('due_date', { ascending: false });
+    res.json(data || []);
+});
+app.post('/api/admin/finance', isAdmin, async (req, res) => {
+    const { user_id, amount, due_date, status } = req.body;
+    const { data, error } = await supabase.from('payments').insert([{ user_id, amount, due_date, status }]).select();
+    if (error) return res.status(400).json({ error: error.message });
+    res.json(data[0]);
+});
+app.put('/api/admin/finance/:id', isAdmin, async (req, res) => {
+    const { error } = await supabase.from('payments').update(req.body).eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+});
+app.delete('/api/admin/finance/:id', isAdmin, async (req, res) => {
+    const { error } = await supabase.from('payments').delete().eq('id', req.params.id);
+    if (error) return res.status(400).json({ error: error.message });
+    res.json({ success: true });
+});
+
 // --- DEBUG TEMPORÁRIO ---
 app.get('/api/debug/my-courses', verifyToken, async (req, res) => {
     const userId = req.user.id;

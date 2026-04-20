@@ -120,6 +120,28 @@
         </div>
     </div>
 
+    <!-- MODAL EDITAR FINANCEIRO -->
+    <div id="financeModal" class="modal">
+        <div class="modal-content glass" style="width: 500px;">
+            <h3>Editar Pagamento</h3>
+            <input type="hidden" id="financeModalId">
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Valor</label>
+            <input type="number" id="financeModalAmount" step="0.01" required>
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Data de Vencimento</label>
+            <input type="date" id="financeModalDate" required>
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Status</label>
+            <select id="financeModalStatus" required>
+                <option value="pending">Pendente</option>
+                <option value="paid">Pago</option>
+                <option value="overdue">Atrasado</option>
+            </select>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn-primary" onclick="saveFinanceModal()" style="flex: 1;">Salvar</button>
+                <button class="btn-secondary" onclick="closeModals()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <header class="container"><nav><a href="index.html" class="logo">Aura<span>Know</span> Admin</a><button onclick="logout()" class="btn-secondary">Sair</button></nav></header>
 
     <main class="container">
@@ -127,6 +149,7 @@
             <button class="tab-btn active" onclick="showSection('users')">Alunos</button>
             <button class="tab-btn" onclick="showSection('courses')">Conteúdo</button>
             <button class="tab-btn" onclick="showSection('results')">Boletim Geral</button>
+            <button class="tab-btn" onclick="showSection('finance')">Financeiro</button>
         </div>
 
         <!-- SEÇÃO ALUNOS -->
@@ -156,6 +179,34 @@
                 </table>
             </div>
         </div>
+
+        <!-- SEÇÃO FINANCEIRO -->
+        <div id="financeSection" class="admin-section">
+            <div class="admin-grid">
+                <div class="glass" style="padding: 40px;">
+                    <h3>Lançar Pagamento</h3>
+                    <form id="createFinanceForm">
+                        <select id="financeStudent" required></select>
+                        <input type="number" id="financeAmount" placeholder="Valor (ex: 99.90)" step="0.01" required>
+                        <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Data de Vencimento</label>
+                        <input type="date" id="financeDate" required>
+                        <select id="financeStatus" required>
+                            <option value="pending">Pendente</option>
+                            <option value="paid">Pago</option>
+                            <option value="overdue">Atrasado</option>
+                        </select>
+                        <button type="submit" class="btn-primary" style="width: 100%;">Lançar Fatura</button>
+                    </form>
+                </div>
+                <div class="glass" style="padding: 40px;">
+                    <h3>Gestão de Faturas</h3>
+                    <table>
+                        <thead><tr><th>Aluno</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr></thead>
+                        <tbody id="financeList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script>
@@ -167,6 +218,7 @@
             document.getElementById(section + 'Section').classList.add('active');
             event.target.classList.add('active');
             if (section === 'results') loadAllResults();
+            if (section === 'finance') loadFinance();
         }
 
         async function loadAllResults() {
@@ -191,12 +243,15 @@
             const users = await res.json();
             const list = document.getElementById('userList');
             const enrollStudent = document.getElementById('enrollStudent');
+            const financeStudent = document.getElementById('financeStudent');
             list.innerHTML = ''; enrollStudent.innerHTML = '<option value="">Selecionar Aluno</option>';
+            if (financeStudent) financeStudent.innerHTML = '<option value="">Selecionar Aluno</option>';
             users.forEach(u => {
                 if (u.email === 'admin@auraknow.com') return;
                 list.innerHTML += `<tr><td>${u.name}</td><td><span class="status-badge ${u.isActive?'status-active':'status-blocked'}">${u.isActive?'Ativo':'Bloq'}</span></td>
                 <td><button class="action-btn" onclick="toggleStatus('${u.id}')">Status</button><button class="action-btn danger" onclick="deleteUser('${u.id}')">X</button></td></tr>`;
                 enrollStudent.innerHTML += `<option value="${u.id}">${u.name}</option>`;
+                if (financeStudent) financeStudent.innerHTML += `<option value="${u.id}">${u.name}</option>`;
             });
         }
 
@@ -345,6 +400,89 @@
                 alert('Erro ao matricular aluno.');
             }
         });
+
+        // --- GESTÃO FINANCEIRA ---
+        async function loadFinance() {
+            const res = await fetch('/api/admin/finance');
+            const payments = await res.json();
+            const list = document.getElementById('financeList');
+            list.innerHTML = '';
+            payments.forEach(p => {
+                let badgeClass = 'status-pending';
+                let statusText = 'Pendente';
+                if (p.status === 'paid') { badgeClass = 'status-active'; statusText = 'Pago'; }
+                else if (p.status === 'overdue') { badgeClass = 'status-blocked'; statusText = 'Atrasado'; }
+
+                const dateStr = new Date(p.due_date).toISOString().split('T')[0];
+
+                list.innerHTML += `<tr>
+                    <td>${p.users ? p.users.name : 'Desconhecido'}</td>
+                    <td>R$ ${p.amount.toFixed(2)}</td>
+                    <td>${new Date(p.due_date).toLocaleDateString('pt-BR')}</td>
+                    <td><span class="status-badge ${badgeClass}">${statusText}</span></td>
+                    <td>
+                        <button class="action-btn info" onclick="openFinanceModal('${p.id}', ${p.amount}, '${dateStr}', '${p.status}')">Editar</button>
+                        <button class="action-btn danger" onclick="deleteFinance('${p.id}')">X</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        document.getElementById('createFinanceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user_id = document.getElementById('financeStudent').value;
+            const amount = parseFloat(document.getElementById('financeAmount').value);
+            const due_date = document.getElementById('financeDate').value;
+            const status = document.getElementById('financeStatus').value;
+            if (!user_id) return alert('Selecione um aluno.');
+
+            const res = await fetch('/api/admin/finance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id, amount, due_date, status })
+            });
+
+            if (res.ok) {
+                alert('Fatura lançada!');
+                document.getElementById('createFinanceForm').reset();
+                loadFinance();
+            } else {
+                alert('Erro ao lançar fatura.');
+            }
+        });
+
+        function openFinanceModal(id, amount, dateStr, status) {
+            document.getElementById('financeModalId').value = id;
+            document.getElementById('financeModalAmount').value = amount;
+            document.getElementById('financeModalDate').value = dateStr;
+            document.getElementById('financeModalStatus').value = status;
+            document.getElementById('financeModal').style.display = 'flex';
+        }
+
+        async function saveFinanceModal() {
+            const id = document.getElementById('financeModalId').value;
+            const amount = parseFloat(document.getElementById('financeModalAmount').value);
+            const due_date = document.getElementById('financeModalDate').value;
+            const status = document.getElementById('financeModalStatus').value;
+
+            const res = await fetch(`/api/admin/finance/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount, due_date, status })
+            });
+            if (res.ok) {
+                closeModals();
+                loadFinance();
+            } else {
+                alert('Erro ao editar fatura.');
+            }
+        }
+
+        async function deleteFinance(id) {
+            if (!confirm('Excluir esta fatura?')) return;
+            await fetch(`/api/admin/finance/${id}`, { method: 'DELETE' });
+            loadFinance();
+        }
 
         // --- CRIAR CURSO ---
         document.getElementById('createCourseForm').addEventListener('submit', async (e) => {
