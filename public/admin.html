@@ -19,10 +19,10 @@
         .status-blocked { background: #e74c3c; color: white; }
         .action-btn { background: none; border: 1px solid var(--primary); color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; margin-right: 5px; }
         .action-btn.danger { border-color: #e74c3c; color: #e74c3c; }
+        .action-btn.success { border-color: #2ecc71; color: #2ecc71; }
         input, select, textarea { width: 100%; padding: 12px; margin-bottom: 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 8px; font-size: 1rem; }
         .lesson-list-item { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* Modal Style */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: var(--bg-dark); border: 1px solid var(--glass-border); padding: 40px; border-radius: 24px; width: 600px; max-width: 90%; }
     </style>
@@ -30,17 +30,18 @@
 <body>
     <div class="bg-mesh"></div>
 
-    <!-- MODAL DE EDIÇÃO -->
-    <div id="editModal" class="modal">
+    <!-- MODAL DE EDIÇÃO/CRIAÇÃO -->
+    <div id="lessonModal" class="modal">
         <div class="modal-content glass">
-            <h3>Editar Aula</h3>
-            <input type="hidden" id="editLessonId">
-            <input type="text" id="editLessonTitle" placeholder="Título">
-            <input type="text" id="editLessonVideo" placeholder="URL do Vídeo">
-            <textarea id="editLessonContent" placeholder="Conteúdo da Aula" style="height: 200px;"></textarea>
-            <input type="number" id="editLessonOrder" placeholder="Ordem">
+            <h3 id="modalTitle">Aula</h3>
+            <input type="hidden" id="modalLessonId">
+            <input type="hidden" id="modalCourseId">
+            <input type="text" id="modalLessonTitle" placeholder="Título da Aula">
+            <input type="text" id="modalLessonVideo" placeholder="URL do Vídeo">
+            <textarea id="modalLessonContent" placeholder="Conteúdo da Aula" style="height: 200px;"></textarea>
+            <input type="number" id="modalLessonOrder" placeholder="Ordem">
             <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn-primary" onclick="saveLesson()" style="flex: 1;">Salvar Alterações</button>
+                <button class="btn-primary" onclick="saveLesson()" style="flex: 1;">Salvar</button>
                 <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
             </div>
         </div>
@@ -76,31 +77,22 @@
         <div id="coursesSection" class="admin-section">
             <div class="admin-grid">
                 <div class="glass" style="padding: 40px;">
-                    <h3>Criar Conteúdo</h3>
+                    <h3>Novo Curso</h3>
                     <form id="createCourseForm">
-                        <input type="text" id="courseTitle" placeholder="Novo Curso" required>
-                        <button type="submit" class="btn-primary" style="width: 100%; margin-bottom: 30px;">Criar Curso</button>
+                        <input type="text" id="courseTitleInput" placeholder="Nome do Curso" required>
+                        <button type="submit" class="btn-primary" style="width: 100%;">Criar Curso</button>
                     </form>
-                    <hr style="opacity: 0.1; margin: 20px 0;">
-                    <form id="createLessonForm">
-                        <select id="lessonCourse" required><option value="">Curso Destino</option></select>
-                        <input type="text" id="lessonTitle" placeholder="Título da Aula" required>
-                        <input type="text" id="lessonVideo" placeholder="URL do Vídeo">
-                        <textarea id="lessonContentInput" placeholder="Conteúdo Escrito"></textarea>
-                        <input type="number" id="lessonOrder" placeholder="Ordem" value="1">
-                        <button type="submit" class="btn-primary" style="width: 100%;">Adicionar Aula</button>
+                    <hr style="opacity: 0.1; margin: 40px 0;">
+                    <h3>Matrícula</h3>
+                    <form id="enrollForm">
+                        <select id="enrollStudent" required></select>
+                        <select id="enrollCourse" required></select>
+                        <button type="submit" class="btn-primary" style="width: 100%;">Matricular Aluno</button>
                     </form>
                 </div>
                 <div class="glass" style="padding: 40px;">
-                    <h3>Gestão de Cursos e Aulas</h3>
+                    <h3>Gestão de Conteúdo</h3>
                     <div id="courseManagementList"></div>
-                    <hr style="opacity: 0.1; margin: 40px 0;">
-                    <h3>Matrícula</h3>
-                    <form id="enrollForm" style="display: flex; gap: 10px;">
-                        <select id="enrollStudent" required></select>
-                        <select id="enrollCourse" required></select>
-                        <button type="submit" class="btn-primary">Matricular</button>
-                    </form>
                 </div>
             </div>
         </div>
@@ -140,19 +132,17 @@
 
         document.getElementById('createUserForm').onsubmit = async (e) => {
             e.preventDefault();
-            const res = await fetch('/api/admin/create-user', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:document.getElementById('newName').value, email:document.getElementById('newEmail').value, password:document.getElementById('newPassword').value, role:document.getElementById('newRole').value})});
-            if(res.ok) { alert('Criado!'); loadUsers(); }
+            await fetch('/api/admin/create-user', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:document.getElementById('newName').value, email:document.getElementById('newEmail').value, password:document.getElementById('newPassword').value, role:document.getElementById('newRole').value})});
+            loadUsers();
         };
 
         async function loadCourses() {
             const res = await fetch('/api/courses');
             const courses = await res.json();
             const manageList = document.getElementById('courseManagementList');
-            const lessonSelect = document.getElementById('lessonCourse');
             const enrollCourse = document.getElementById('enrollCourse');
             
             manageList.innerHTML = '';
-            lessonSelect.innerHTML = '<option value="">Curso Destino</option>';
             enrollCourse.innerHTML = '<option value="">Selecionar Curso</option>';
 
             for (const c of courses) {
@@ -164,14 +154,13 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px;">
                         <h4 style="margin: 0;">${c.title}</h4>
                         <div>
+                            <button class="action-btn success" onclick="openModal('create', null, '${c.id}')">+ Aula</button>
                             <button class="action-btn" onclick="editCourse('${c.id}', '${c.title}')">Renomear</button>
-                            <button class="action-btn danger" onclick="deleteCourse('${c.id}')">Apagar Curso</button>
+                            <button class="action-btn danger" onclick="deleteCourse('${c.id}')">Apagar</button>
                         </div>
                     </div>
                     <div id="lessons-${c.id}" style="margin-top: 15px;"></div>`;
                 manageList.appendChild(courseDiv);
-
-                lessonSelect.innerHTML += `<option value="${c.id}">${c.title}</option>`;
                 enrollCourse.innerHTML += `<option value="${c.id}">${c.title}</option>`;
 
                 const lRes = await fetch(`/api/courses/${c.id}/lessons`);
@@ -182,7 +171,7 @@
                     lDiv.className = 'lesson-list-item';
                     lDiv.innerHTML = `<span>${l.order}. ${l.title}</span>
                         <div>
-                            <button class="action-btn" onclick="openEditModal('${l.id}', '${l.title}', '${l.video_url || ''}', \`${l.content || ''}\`, '${l.order}')">Editar</button>
+                            <button class="action-btn" onclick="openModal('edit', '${l.id}', '${c.id}', '${l.title}', '${l.video_url || ''}', \`${l.content || ''}\`, '${l.order}')">Editar</button>
                             <button class="action-btn danger" onclick="deleteLesson('${l.id}')">X</button>
                         </div>`;
                     lContainer.appendChild(lDiv);
@@ -190,68 +179,51 @@
             }
         }
 
-        async function editCourse(id, oldTitle) {
-            const title = prompt('Novo nome para o curso:', oldTitle);
-            if (!title) return;
-            await fetch(`/api/admin/courses/${id}`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ title })
-            });
-            loadCourses();
+        // --- GESTÃO DE MODAL (CRIAÇÃO E EDIÇÃO) ---
+        function openModal(mode, lessonId, courseId, title='', url='', content='', order='1') {
+            document.getElementById('modalTitle').textContent = mode === 'create' ? 'Nova Aula' : 'Editar Aula';
+            document.getElementById('modalLessonId').value = lessonId || '';
+            document.getElementById('modalCourseId').value = courseId || '';
+            document.getElementById('modalLessonTitle').value = title;
+            document.getElementById('modalLessonVideo').value = url;
+            document.getElementById('modalLessonContent').value = content;
+            document.getElementById('modalLessonOrder').value = order;
+            document.getElementById('lessonModal').style.display = 'flex';
         }
 
-        async function deleteCourse(id) {
-            if (!confirm('ATENÇÃO: Isso apagará o curso e TODAS as aulas vinculadas a ele. Continuar?')) return;
-            await fetch(`/api/admin/courses/${id}`, { method: 'DELETE' });
-            loadCourses();
-        }
-
-        // --- LÓGICA DO MODAL DE EDIÇÃO ---
-        function openEditModal(id, title, url, content, order) {
-            document.getElementById('editLessonId').value = id;
-            document.getElementById('editLessonTitle').value = title;
-            document.getElementById('editLessonVideo').value = url;
-            document.getElementById('editLessonContent').value = content;
-            document.getElementById('editLessonOrder').value = order;
-            document.getElementById('editModal').style.display = 'flex';
-        }
-
-        function closeModal() { document.getElementById('editModal').style.display = 'none'; }
+        function closeModal() { document.getElementById('lessonModal').style.display = 'none'; }
 
         async function saveLesson() {
-            const id = document.getElementById('editLessonId').value;
+            const id = document.getElementById('modalLessonId').value;
+            const courseId = document.getElementById('modalCourseId').value;
             const payload = {
-                title: document.getElementById('editLessonTitle').value,
-                video_url: document.getElementById('editLessonVideo').value,
-                content: document.getElementById('editLessonContent').value,
-                order: document.getElementById('editLessonOrder').value
+                course_id: courseId,
+                title: document.getElementById('modalLessonTitle').value,
+                video_url: document.getElementById('modalLessonVideo').value,
+                content: document.getElementById('modalLessonContent').value,
+                order: document.getElementById('modalLessonOrder').value
             };
-            const res = await fetch(`/api/admin/lessons/${id}`, {
-                method: 'PUT',
+
+            const url = id ? `/api/admin/lessons/${id}` : '/api/admin/lessons';
+            const method = id ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             });
-            if(res.ok) { alert('Aula atualizada!'); closeModal(); loadCourses(); }
+
+            if(res.ok) { closeModal(); loadCourses(); }
         }
 
-        async function deleteLesson(id) {
-            if(confirm('Apagar aula?')) {
-                await fetch(`/api/admin/lessons/${id}`, { method: 'DELETE' });
-                loadCourses();
-            }
-        }
+        async function deleteLesson(id) { if(confirm('Apagar aula?')) { await fetch(`/api/admin/lessons/${id}`, { method: 'DELETE' }); loadCourses(); } }
+        async function editCourse(id, oldTitle) { const title = prompt('Novo nome:', oldTitle); if (title) { await fetch(`/api/admin/courses/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ title }) }); loadCourses(); } }
+        async function deleteCourse(id) { if (confirm('Apagar curso e todas as aulas?')) { await fetch(`/api/admin/courses/${id}`, { method: 'DELETE' }); loadCourses(); } }
 
         document.getElementById('createCourseForm').onsubmit = async (e) => {
             e.preventDefault();
-            await fetch('/api/admin/courses', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title:document.getElementById('courseTitle').value})});
-            loadCourses();
-        };
-
-        document.getElementById('createLessonForm').onsubmit = async (e) => {
-            e.preventDefault();
-            await fetch('/api/admin/lessons', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({course_id:document.getElementById('lessonCourse').value, title:document.getElementById('lessonTitle').value, video_url:document.getElementById('lessonVideo').value, content:document.getElementById('lessonContentInput').value, order:document.getElementById('lessonOrder').value})});
-            alert('Aula adicionada!');
+            await fetch('/api/admin/courses', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({title:document.getElementById('courseTitleInput').value})});
+            document.getElementById('createCourseForm').reset();
             loadCourses();
         };
 
