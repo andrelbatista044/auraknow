@@ -259,7 +259,99 @@
             }
         });
 
+        // --- MATRÍCULA ---
+        document.getElementById('enrollForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user_id = document.getElementById('enrollStudent').value;
+            const course_id = document.getElementById('enrollCourse').value;
+            if (!user_id || !course_id) return alert('Selecione o aluno e o curso!');
+            const res = await fetch('/api/admin/enroll', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id, course_id })
+            });
+            if (res.ok) {
+                alert('Aluno matriculado com sucesso!');
+                document.getElementById('enrollForm').reset();
+            } else {
+                alert('Erro ao matricular aluno.');
+            }
+        });
+
+        // --- CRIAR CURSO ---
+        document.getElementById('createCourseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('courseTitleInput').value;
+            const res = await fetch('/api/admin/courses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            });
+            if (res.ok) {
+                alert('Curso criado com sucesso!');
+                document.getElementById('createCourseForm').reset();
+                loadCourses();
+            } else {
+                alert('Erro ao criar curso.');
+            }
+        });
+
+        // --- FUNÇÕES UTILITÁRIAS ---
+        async function toggleStatus(userId) {
+            await fetch('/api/admin/toggle-status', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ userId }) });
+            loadUsers();
+        }
+        async function deleteUser(userId) {
+            if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+            await fetch('/api/admin/delete-user', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ userId }) });
+            loadUsers();
+        }
+        async function deleteCourse(id) {
+            if (!confirm('Excluir este curso?')) return;
+            await fetch(`/api/admin/courses/${id}`, { method: 'DELETE' }); loadCourses();
+        }
+        async function editCourse(id, title) {
+            const newTitle = prompt('Novo nome do curso:', title);
+            if (!newTitle) return;
+            await fetch(`/api/admin/courses/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ title: newTitle }) }); loadCourses();
+        }
+        function openSubjectModal(mode, courseId) {
+            const title = prompt('Nome da Matéria:');
+            if (!title) return;
+            fetch('/api/admin/subjects', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ course_id: courseId, title, order: 1 }) }).then(() => loadCourses());
+        }
+        function deleteSubject(id) {
+            if (!confirm('Excluir esta matéria?')) return;
+            fetch(`/api/admin/subjects/${id}`, { method: 'DELETE' }).then(() => loadCourses());
+        }
+        function openModuleModal(mode, moduleId, subjectId) {
+            const title = prompt('Nome do Módulo:');
+            if (!title) return;
+            const order = prompt('Ordem do módulo:', '1');
+            fetch('/api/admin/modules', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ subject_id: subjectId, title, order: parseInt(order) || 1 }) }).then(() => loadCourses());
+        }
+        function deleteModule(id) {
+            if (!confirm('Excluir este módulo?')) return;
+            fetch(`/api/admin/modules/${id}`, { method: 'DELETE' }).then(() => loadCourses());
+        }
+        function openLessonModal(mode, lessonId, moduleId, title, videoUrl, content, order) {
+            const lTitle = prompt('Título da Aula:', title || '');
+            if (!lTitle) return;
+            const lVideo = prompt('URL do Vídeo (YouTube):', videoUrl || '');
+            const lOrder = prompt('Ordem da Aula:', order || '1');
+            if (mode === 'create') {
+                fetch('/api/admin/lessons', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ module_id: moduleId, title: lTitle, video_url: lVideo, order: parseInt(lOrder) || 1 }) }).then(() => loadCourses());
+            } else {
+                fetch(`/api/admin/lessons/${lessonId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ title: lTitle, video_url: lVideo, order: parseInt(lOrder) || 1 }) }).then(() => loadCourses());
+            }
+        }
+        function deleteLesson(id) {
+            if (!confirm('Excluir esta aula?')) return;
+            fetch(`/api/admin/lessons/${id}`, { method: 'DELETE' }).then(() => loadCourses());
+        }
+
         loadUsers(); loadCourses();
+
     </script>
 </body>
 </html>

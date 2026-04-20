@@ -195,6 +195,24 @@ app.post('/api/admin/toggle-status', isAdmin, async (req, res) => {
     res.json({ success: true });
 });
 app.delete('/api/admin/delete-user', isAdmin, async (req, res) => { await supabase.from('users').delete().eq('id', req.body.userId); res.json({ success: true }); });
-app.post('/api/admin/enroll', isAdmin, async (req, res) => { await supabase.from('enrollments').insert([req.body]); res.json({ success: true }); });
+app.post('/api/admin/enroll', isAdmin, async (req, res) => { 
+    const { user_id, course_id } = req.body;
+    if (!user_id || !course_id) return res.status(400).json({ error: 'user_id e course_id são obrigatórios' });
+    await supabase.from('enrollments').insert([{ user_id, course_id }]); 
+    res.json({ success: true }); 
+});
+
+// --- DEBUG TEMPORÁRIO ---
+app.get('/api/debug/my-courses', verifyToken, async (req, res) => {
+    const userId = req.user.id;
+    const { data: enrollments } = await supabase.from('enrollments').select('*').eq('user_id', userId);
+    const { data: allEnrollments } = await supabase.from('enrollments').select('*').limit(10);
+    res.json({ 
+        userId, 
+        userRole: req.user.role,
+        myEnrollments: enrollments, 
+        allEnrollmentsSample: allEnrollments
+    });
+});
 
 app.listen(PORT, () => console.log(`🚀 AuraKnow LMS v4 (Provas) na porta ${PORT}`));
