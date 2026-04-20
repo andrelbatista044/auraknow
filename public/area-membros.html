@@ -33,6 +33,27 @@
         .opt { display: block; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 12px; margin-top: 10px; cursor: pointer; border: 1px solid transparent; transition: 0.3s; }
         .opt:hover { background: rgba(255,255,255,0.1); }
         .opt.selected { border-color: var(--primary); background: rgba(153, 102, 204, 0.2); }
+        
+        /* Financeiro / Boletim */
+        .finance-alert { background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #ff7675; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: none; align-items: center; justify-content: space-between; font-weight: bold; }
+        .finance-card { background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 20px; border-radius: 16px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .finance-card.overdue { border-color: #e74c3c; }
+        .status-badge { padding: 5px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; }
+        .status-paid { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+        .status-pending { background: rgba(241, 196, 15, 0.2); color: #f1c40f; }
+        .status-overdue { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+        
+        .grades-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .grades-table th { padding: 15px 10px; color: var(--text-dim); border-bottom: 2px solid var(--glass-border); }
+        .grades-table td { padding: 15px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        
+        @media print {
+            body { background: white !important; color: black !important; }
+            .sidebar, .finance-alert, button { display: none !important; }
+            .main-content { padding: 0 !important; overflow: visible !important; }
+            #boletimPrintable { background: white !important; color: black !important; border: none !important; box-shadow: none !important; margin: 0 !important; padding: 0 !important; }
+            .grades-table th, .grades-table td { border-bottom: 1px solid #ccc !important; color: black !important; }
+        }
     </style>
 </head>
 <body>
@@ -51,7 +72,11 @@
     <aside class="sidebar">
         <div class="sidebar-header"><a href="index.html" class="logo" style="font-size: 1.5rem;">Aura<span>Know</span></a></div>
         <div class="content-list">
-            <div class="course-section-title">Meus Cursos</div>
+            <div class="course-section-title" style="margin-bottom: 15px; font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; font-weight: bold;">Painel do Aluno</div>
+            <div id="financeBtn" class="course-item" onclick="showFinance()">💳 Financeiro</div>
+            <div id="gradesBtn" class="course-item" onclick="showGrades()">🎓 Boletim de Notas</div>
+            
+            <div class="course-section-title" style="margin-top: 25px; margin-bottom: 15px; font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; font-weight: bold;">Meus Cursos</div>
             <div id="enrollmentList"></div>
             <div id="lessonList"></div>
         </div>
@@ -62,7 +87,51 @@
     </aside>
 
     <main class="main-content">
-        <div id="emptyView" class="empty-state"><h2>Selecione um curso para começar.</h2></div>
+        <div id="financeAlertContainer" class="finance-alert">
+            <span>⚠️ Atenção: Você tem um pagamento próximo do vencimento ou atrasado!</span>
+            <button onclick="showFinance()" class="btn-primary" style="padding: 5px 15px; font-size: 0.8rem;">Ver Detalhes</button>
+        </div>
+        
+        <div id="emptyView" class="empty-state"><h2>Selecione um curso ou item no painel para começar.</h2></div>
+        
+        <div id="financeView" style="display: none;">
+            <h1>Painel Financeiro</h1>
+            <p style="color: var(--text-dim); margin-top: 5px;">Acompanhe seus pagamentos e assinaturas.</p>
+            <div class="glass" style="padding: 30px; margin-top: 20px;">
+                <div id="financeContent">Carregando...</div>
+            </div>
+        </div>
+
+        <div id="gradesView" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Boletim de Notas</h1>
+                    <p style="color: var(--text-dim); margin-top: 5px;">Seu histórico de avaliações concluídas.</p>
+                </div>
+                <button class="btn-primary" onclick="downloadBoletim()">📥 Baixar PDF</button>
+            </div>
+            <div id="boletimPrintable" class="glass" style="padding: 30px; margin-top: 20px;">
+                <div style="text-align: center; margin-bottom: 30px; display: none;" id="printHeader">
+                    <h2>AuraKnow - Boletim Oficial</h2>
+                    <p style="font-size: 1.1rem; margin-top: 10px;">Aluno(a): <strong id="boletimStudentName"></strong></p>
+                    <hr style="border: none; border-top: 1px solid #ccc; margin-top: 20px;">
+                </div>
+                <table class="grades-table">
+                    <thead>
+                        <tr>
+                            <th>Avaliação</th>
+                            <th>Nota Necessária</th>
+                            <th>Nota Obtida</th>
+                            <th>Data</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gradesContent">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div id="mainView" style="display: none;">
             <div class="video-container"><iframe id="videoPlayer" allowfullscreen></iframe></div>
             <h1 id="lessonTitle">Título</h1>
@@ -71,14 +140,111 @@
     </main>
 
     <script>
-        let currentQuiz = null; let userAnswers = {}; let quizResults = [];
+        let currentQuiz = null; let userAnswers = {}; let quizResults = []; let payments = []; let currentUser = null;
 
         async function checkAuth() {
             const res = await fetch('/api/me');
             if (!res.ok) window.location.href = 'login.html';
-            const user = await res.json();
-            document.getElementById('userName').innerText = user.name;
-            loadResults(); loadEnrollments();
+            currentUser = await res.json();
+            document.getElementById('userName').innerText = currentUser.name;
+            document.getElementById('boletimStudentName').innerText = currentUser.name;
+            await loadResults(); 
+            await loadEnrollments();
+            await checkFinanceAlert();
+        }
+
+        function hideAllViews() {
+            document.getElementById('emptyView').style.display = 'none';
+            document.getElementById('mainView').style.display = 'none';
+            document.getElementById('financeView').style.display = 'none';
+            document.getElementById('gradesView').style.display = 'none';
+            document.querySelectorAll('.course-item').forEach(i => i.classList.remove('active'));
+        }
+
+        async function checkFinanceAlert() {
+            try {
+                const res = await fetch('/api/me/finance');
+                payments = await res.json();
+                
+                // Checa se há pagamentos pendentes próximos ou atrasados
+                const hasAlert = payments.some(p => {
+                    if (p.status !== 'pending' && p.status !== 'overdue') return false;
+                    const dueDate = new Date(p.due_date);
+                    const today = new Date();
+                    const diffTime = dueDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays <= 7; // Alerta 7 dias antes ou se estiver atrasado (negativo)
+                });
+
+                if (hasAlert) {
+                    document.getElementById('financeAlertContainer').style.display = 'flex';
+                }
+            } catch (err) { console.error('Erro financeiro', err); }
+        }
+
+        function showFinance() {
+            hideAllViews();
+            document.getElementById('financeBtn').classList.add('active');
+            document.getElementById('financeView').style.display = 'block';
+            
+            const content = document.getElementById('financeContent');
+            if (!payments || payments.length === 0) {
+                content.innerHTML = '<p>Você não tem histórico de pagamentos.</p>';
+                return;
+            }
+
+            content.innerHTML = payments.map(p => {
+                const isOverdue = p.status === 'overdue' || (p.status === 'pending' && new Date(p.due_date) < new Date());
+                let badgeClass = 'status-pending';
+                let statusText = 'Pendente';
+                if (p.status === 'paid') { badgeClass = 'status-paid'; statusText = 'Pago'; }
+                else if (isOverdue) { badgeClass = 'status-overdue'; statusText = 'Atrasado'; }
+
+                return `
+                    <div class="finance-card ${isOverdue ? 'overdue' : ''}">
+                        <div>
+                            <h3 style="margin-bottom: 5px;">Fatura #<span>${p.id.split('-')[0]}</span></h3>
+                            <p style="color: var(--text-dim); font-size: 0.9rem;">Vencimento: ${new Date(p.due_date).toLocaleDateString('pt-BR')}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 8px;">R$ ${p.amount.toFixed(2).replace('.', ',')}</div>
+                            <span class="status-badge ${badgeClass}">${statusText}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showGrades() {
+            hideAllViews();
+            document.getElementById('gradesBtn').classList.add('active');
+            document.getElementById('gradesView').style.display = 'block';
+            
+            const tbody = document.getElementById('gradesContent');
+            if (!quizResults || quizResults.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Nenhuma avaliação concluída.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = quizResults.map(r => {
+                const quiz = r.quizzes || {};
+                const passScore = quiz.passing_score || 0;
+                return `
+                    <tr>
+                        <td><strong>${quiz.title || 'Prova'}</strong></td>
+                        <td>${passScore}%</td>
+                        <td><strong style="color: ${r.passed ? '#2ecc71' : '#e74c3c'};">${r.score}%</strong></td>
+                        <td>${new Date(r.completed_at).toLocaleDateString('pt-BR')}</td>
+                        <td><span class="status-badge ${r.passed ? 'status-paid' : 'status-overdue'}">${r.passed ? 'Aprovado' : 'Reprovado'}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function downloadBoletim() {
+            document.getElementById('printHeader').style.display = 'block';
+            window.print();
+            setTimeout(() => { document.getElementById('printHeader').style.display = 'none'; }, 1000);
         }
 
         async function loadResults() {
@@ -100,8 +266,9 @@
         }
 
         async function selectCourse(courseId, element) {
-            document.querySelectorAll('.course-item').forEach(i => i.classList.remove('active'));
+            hideAllViews();
             element.classList.add('active');
+            document.getElementById('emptyView').style.display = 'flex'; // Exibe o empty state até clicar na aula
             const lessonList = document.getElementById('lessonList');
             lessonList.innerHTML = '';
 
@@ -152,10 +319,9 @@
         }
 
         function playVideo(url, title, content, element) {
-            document.querySelectorAll('.lesson-item').forEach(i => i.classList.remove('active'));
+            hideAllViews();
             element.classList.add('active');
             document.getElementById('mainView').style.display = 'block';
-            document.getElementById('emptyView').style.display = 'none';
             document.getElementById('lessonTitle').textContent = title;
             document.getElementById('lessonContent').innerHTML = (content || '').replace(/\n/g, '<br>');
             

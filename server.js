@@ -55,6 +55,12 @@ app.get('/api/me', verifyToken, async (req, res) => {
     res.json(user);
 });
 
+// --- FINANCEIRO ---
+app.get('/api/me/finance', verifyToken, async (req, res) => {
+    const { data } = await supabase.from('payments').select('*').eq('user_id', req.user.id).order('due_date', { ascending: true });
+    res.json(data || []);
+});
+
 // --- CURSOS / MATERIAS / MODULOS / AULAS (CRUD PADRÃO) ---
 app.get('/api/courses', verifyToken, async (req, res) => {
     if (req.user.role === 'admin') {
@@ -170,7 +176,7 @@ app.post('/api/quizzes/:id/submit', verifyToken, async (req, res) => {
 });
 
 app.get('/api/quiz-results', verifyToken, async (req, res) => {
-    const { data } = await supabase.from('quiz_attempts').select('*, quizzes(title, module_id)').eq('user_id', req.user.id).order('completed_at', { ascending: false });
+    const { data } = await supabase.from('quiz_attempts').select('*, quizzes(title, module_id, passing_score)').eq('user_id', req.user.id).order('completed_at', { ascending: false });
     res.json(data);
 });
 
