@@ -70,6 +70,9 @@
             <input type="number" id="quizPassingScore" placeholder="Nota de Corte (70)">
             <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Data Limite (Opcional)</label>
             <input type="datetime-local" id="quizDueDate">
+            <label style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 4px; display: block;">Tempo Limite (Minutos - 0 para ilimitado)</label>
+            <input type="number" id="quizTimeLimit" placeholder="Ex: 60" min="0">
+
             <div id="questionsContainer"></div>
             <button class="action-btn success" onclick="addQuestion()">+ Questão</button>
             <div style="display: flex; gap: 10px; margin-top: 30px;">
@@ -507,7 +510,9 @@
             document.getElementById('quizOrder').value = '';
             document.getElementById('quizPassingScore').value = '';
             document.getElementById('quizDueDate').value = '';
+            document.getElementById('quizTimeLimit').value = '';
             document.getElementById('questionsContainer').innerHTML = '';
+
             
             if (quizId) {
                 // Modo Edição: Buscar dados completos
@@ -523,6 +528,8 @@
                         const formatted = dt.toISOString().slice(0, 16);
                         document.getElementById('quizDueDate').value = formatted;
                     }
+                    document.getElementById('quizTimeLimit').value = quiz.time_limit || '';
+
                     if (quiz.questions && quiz.questions.length > 0) {
                         quiz.questions.forEach(q => addQuestion(q));
                     } else {
@@ -575,9 +582,11 @@
                     passing_score: parseInt(document.getElementById('quizPassingScore').value), 
                     order: parseInt(document.getElementById('quizOrder').value) || 99, 
                     questions: questions,
-                    due_date: dueDate || null
+                    due_date: dueDate || null,
+                    time_limit: parseInt(document.getElementById('quizTimeLimit').value) || 0
                 }) 
             });
+
             alert('Prova Criada/Atualizada!'); 
             closeModals();
             loadCourses();

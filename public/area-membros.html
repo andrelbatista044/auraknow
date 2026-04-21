@@ -174,7 +174,11 @@
     <div id="quizView" class="modal">
         <div class="modal-content glass">
             <h2 id="quizModalTitle">Carregando Prova...</h2>
+            <div id="quizTimer" style="display: none; background: rgba(153, 102, 204, 0.1); border: 1px solid var(--primary); padding: 10px; border-radius: 10px; text-align: center; margin-bottom: 20px; font-weight: bold; font-size: 1.2rem; color: var(--primary);">
+                ⏱️ Tempo restante: <span id="timerDisplay">00:00</span>
+            </div>
             <div id="quizProgress" style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 20px;">Questão 1 de X</div>
+
             <div id="quizBody"></div>
             <div style="display: flex; gap: 10px; margin-top: 30px;">
                 <button id="nextBtn" class="btn-primary" onclick="submitQuiz()" style="flex: 1; display: none;">Finalizar Prova</button>
@@ -290,6 +294,8 @@
 
     <script>
         let currentQuiz = null; let userAnswers = {}; let quizResults = []; let payments = []; let currentUser = null; let notifications = [];
+        let quizTimerInterval = null;
+
 
         async function checkAuth() {
             const res = await fetch('/api/me');
@@ -643,14 +649,47 @@
                         qDiv.querySelectorAll('.opt').forEach(o => o.classList.remove('selected'));
                         optDiv.classList.add('selected');
                         userAnswers[q.id] = oi;
+                        document.getElementById('quizProgress').textContent = `Questão ${Object.keys(userAnswers).length} de ${quiz.questions.length}`;
                         if (Object.keys(userAnswers).length === quiz.questions.length) document.getElementById('nextBtn').style.display = 'block';
                     };
+
                     qDiv.appendChild(optDiv);
                 });
                 body.appendChild(qDiv);
             });
+            document.getElementById('quizProgress').textContent = `Questão 0 de ${quiz.questions.length}`;
+            
+            // Timer Logic
+            const timerDiv = document.getElementById('quizTimer');
+            const timerDisplay = document.getElementById('timerDisplay');
+            if (quizTimerInterval) clearInterval(quizTimerInterval);
+            
+            if (quiz.time_limit && quiz.time_limit > 0) {
+                timerDiv.style.display = 'block';
+                let secondsLeft = quiz.time_limit * 60;
+                
+                function updateTimer() {
+                    const mins = Math.floor(secondsLeft / 60);
+                    const secs = secondsLeft % 60;
+                    timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    
+                    if (secondsLeft <= 0) {
+                        clearInterval(quizTimerInterval);
+                        alert('Tempo esgotado! Sua prova será enviada agora.');
+                        submitQuiz();
+                    }
+                    secondsLeft--;
+                }
+                
+                updateTimer();
+                quizTimerInterval = setInterval(updateTimer, 1000);
+            } else {
+                timerDiv.style.display = 'none';
+            }
+
             document.getElementById('quizView').style.display = 'flex';
         }
+
 
         async function submitQuiz() {
             const res = await fetch(`/api/quizzes/${currentQuiz.id}/submit`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ answers: userAnswers }) });
@@ -659,7 +698,11 @@
             location.reload();
         }
 
-        function closeQuiz() { document.getElementById('quizView').style.display = 'none'; }
+        function closeQuiz() { 
+            if (quizTimerInterval) clearInterval(quizTimerInterval);
+            document.getElementById('quizView').style.display = 'none'; 
+        }
+
         async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = 'login.html'; }
         window.onload = checkAuth;
     </script>

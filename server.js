@@ -202,8 +202,9 @@ app.get('/api/modules/:id/quiz', verifyToken, async (req, res) => {
 });
 
 app.post('/api/admin/quizzes', isTeacher, async (req, res) => {
-    const { module_id, title, passing_score, order, questions, due_date } = req.body;
-    const { data: quiz, error: qErr } = await supabase.from('quizzes').upsert({ module_id, title, passing_score, order: order || 99, due_date: due_date || null }, { onConflict: 'module_id' }).select().single();
+    const { module_id, title, passing_score, order, questions, due_date, time_limit } = req.body;
+    const { data: quiz, error: qErr } = await supabase.from('quizzes').upsert({ module_id, title, passing_score, order: order || 99, due_date: due_date || null, time_limit: time_limit || 0 }, { onConflict: 'module_id' }).select().single();
+
     if (qErr) return res.status(400).json({ error: qErr.message });
     if (questions && questions.length > 0) {
         await supabase.from('questions').delete().eq('quiz_id', quiz.id);
