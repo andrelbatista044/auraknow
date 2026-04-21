@@ -513,11 +513,15 @@ footer {
 }
 
 /* Helper Classes */
-.mobile-only { display: none; }
+.mobile-only { display: none !important; }
+.desktop-only { display: flex !important; }
+
 @media (max-width: 768px) {
-    .mobile-only { display: block; }
-    .desktop-only { display: none; }
+    .mobile-only { display: block !important; }
+    .desktop-only { display: none !important; }
 }
+
+
 
 .hidden { display: none !important; }
 
