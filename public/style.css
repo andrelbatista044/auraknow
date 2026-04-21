@@ -186,10 +186,11 @@ nav {
 .hero h1 {
     font-size: 5rem;
     margin-bottom: 50px;
-    background: linear-gradient(to bottom, #FFF 40%, var(--primary));
+    background: linear-gradient(to bottom, var(--text-main) 40%, var(--primary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
+
 
 .hero p {
     font-size: 1.4rem;

@@ -23,11 +23,12 @@
                 <a href="index.html" onclick="toggleMenu()">Início</a>
                 <a href="login.html" onclick="toggleMenu()" style="color: var(--primary);">Entrar</a>
 
-                <div class="theme-toggle" style="margin-top: 20px;">
+                <div class="theme-toggle mobile-only" style="margin-top: 20px;">
                     <button class="theme-toggle-btn" data-theme-value="light" title="Modo Claro">☀️</button>
                     <button class="theme-toggle-btn" data-theme-value="dark" title="Modo Escuro">🌙</button>
                     <button class="theme-toggle-btn" data-theme-value="system" title="Sistema">🖥️</button>
                 </div>
+                <a href="vendas.html" class="btn-primary mobile-only" style="width: 100%; text-align: center; margin-top: 20px;" onclick="toggleMenu()">Ver Cursos</a>
             </div>
 
             <div class="desktop-only" style="display: flex; align-items: center; gap: 20px;">
@@ -36,12 +37,11 @@
                     <button class="theme-toggle-btn" data-theme-value="dark" title="Modo Escuro">🌙</button>
                     <button class="theme-toggle-btn" data-theme-value="system" title="Sistema">🖥️</button>
                 </div>
-                <a href="index.html" class="btn-secondary">Início</a>
-                <a href="login.html" class="btn-primary">Entrar</a>
+                <a href="vendas.html" class="btn-primary">Ver Cursos</a>
             </div>
-
         </nav>
     </header>
+
 
     <main class="container">
         <!-- Carousel Section -->

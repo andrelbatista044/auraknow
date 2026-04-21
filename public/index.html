@@ -23,27 +23,26 @@
                 <a href="#vantagens" onclick="toggleMenu()">Vantagens</a>
                 <a href="#depoimentos" onclick="toggleMenu()">Depoimentos</a>
                 <a href="login.html" style="color: var(--primary);" onclick="toggleMenu()">Entrar</a>
-                <a href="vendas.html" class="btn-primary desktop-only">Ver Cursos</a>
-                <a href="vendas.html" class="btn-primary mobile-only" style="width: 100%; text-align: center;" onclick="toggleMenu()">Ver Cursos</a>
                 
-                <div class="theme-toggle" style="margin-top: 20px;">
+                <div class="theme-toggle mobile-only" style="margin-top: 20px;">
                     <button class="theme-toggle-btn" data-theme-value="light" title="Modo Claro">☀️</button>
                     <button class="theme-toggle-btn" data-theme-value="dark" title="Modo Escuro">🌙</button>
                     <button class="theme-toggle-btn" data-theme-value="system" title="Sistema">🖥️</button>
                 </div>
+                <a href="vendas.html" class="btn-primary mobile-only" style="width: 100%; text-align: center; margin-top: 20px;" onclick="toggleMenu()">Ver Cursos</a>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 20px;">
-                <div class="theme-toggle desktop-only">
+            <div class="desktop-only" style="display: flex; align-items: center; gap: 20px;">
+                <div class="theme-toggle">
                     <button class="theme-toggle-btn" data-theme-value="light" title="Modo Claro">☀️</button>
                     <button class="theme-toggle-btn" data-theme-value="dark" title="Modo Escuro">🌙</button>
                     <button class="theme-toggle-btn" data-theme-value="system" title="Sistema">🖥️</button>
                 </div>
-                <a href="vendas.html" class="btn-primary desktop-only">Ver Cursos</a>
+                <a href="vendas.html" class="btn-primary">Ver Cursos</a>
             </div>
-
         </nav>
     </header>
+
 
     <main>
         <!-- Hero Section -->
