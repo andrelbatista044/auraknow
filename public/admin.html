@@ -33,6 +33,17 @@
         .modal-content { background: var(--bg-dark); border: 1px solid var(--glass-border); padding: 40px; border-radius: 24px; width: 800px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
         .question-card { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; border: 1px solid var(--glass-border); margin-bottom: 20px; }
         main.container { max-width: 1600px; width: 95%; }
+
+        /* User Profile in Header */
+        .user-nav-profile { display: flex; align-items: center; gap: 20px; }
+        .user-info-pill { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 5px 15px; border-radius: 100px; border: 1px solid var(--glass-border); }
+        .user-avatar {
+            width: 30px; height: 30px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: var(--bg-dark); font-size: 0.8rem;
+        }
+        .user-name-label { font-weight: 600; font-size: 0.85rem; color: var(--text-main); }
     </style>
 </head>
 <body>
@@ -178,7 +189,18 @@
         </div>
     </div>
 
-    <header class="container"><nav><a href="index.html" class="logo">Aura<span>Know</span> Admin</a><button onclick="logout()" class="btn-secondary">Sair</button></nav></header>
+    <header class="container">
+        <nav>
+            <a href="index.html" class="logo">Aura<span>Know</span> Admin</a>
+            <div class="user-nav-profile">
+                <div class="user-info-pill">
+                    <div class="user-avatar" id="userAvatarInitials">-</div>
+                    <div class="user-name-label" id="userName">Carregando...</div>
+                </div>
+                <button onclick="logout()" class="btn-secondary" style="padding: 10px 20px; font-size: 0.8rem;">Sair</button>
+            </div>
+        </nav>
+    </header>
 
     <main class="container">
         <div class="admin-tabs">
@@ -293,6 +315,9 @@
             currentUser = await res.json();
             if (currentUser.role === 'student') window.location.href = 'area-membros.html';
             
+            document.getElementById('userName').innerText = currentUser.name;
+            document.getElementById('userAvatarInitials').innerText = currentUser.name.charAt(0).toUpperCase();
+
             applyRoleRestrictions();
             loadUsers();
             loadCourses();
