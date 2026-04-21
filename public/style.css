@@ -334,30 +334,165 @@ footer {
     text-align: center;
 }
 
-/* Mobile */
-@media (max-width: 900px) {
-    section {
-        padding: 100px 0;
+/* Mobile Overrides and Global Responsiveness */
+@media (max-width: 1024px) {
+    .container {
+        padding: 0 30px;
     }
     
-    .hero h1 {
-        font-size: 3.5rem;
+    section {
+        padding: 120px 0;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --glass-padding: 30px;
     }
 
-    .hero p {
-        font-size: 1.1rem;
+    section {
+        padding: 80px 0;
     }
+
+    h1 { font-size: 2.8rem !important; }
+    h2 { font-size: 2rem !important; }
+    h3 { font-size: 1.5rem !important; }
+
+    .hero { padding: 80px 0; }
+    .hero h1 { font-size: 3rem !important; margin-bottom: 30px; }
+    .hero p { font-size: 1.1rem; margin-bottom: 40px; }
 
     .glass {
-        padding: 50px 30px;
+        padding: var(--glass-padding);
+        border-radius: 24px;
     }
 
-    .course-card {
-        min-width: 330px;
-        padding: 40px;
+    .nav-links {
+        display: none; /* Hidden by default on mobile, handled by JS toggle */
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 80%;
+        height: 100vh;
+        background: rgba(13, 13, 13, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .nav-links.active {
+        right: 0;
+        display: flex;
+    }
+
+    .nav-links a {
+        font-size: 1.5rem;
+    }
+
+    .mobile-menu-btn {
+        display: block;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 2rem;
+        cursor: pointer;
+        z-index: 1001;
+    }
+
+    .advantages-grid, .testimonials-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+        margin-top: 60px;
     }
 
     .hero-btns {
         flex-direction: column;
+        width: 100%;
+    }
+
+    .hero-btns a {
+        width: 100%;
+        text-align: center;
+    }
+
+    .course-card {
+        min-width: 100%;
+        padding: 30px;
+    }
+
+    .carousel-track {
+        gap: 20px;
+    }
+
+    .carousel-btn {
+        width: 60px;
+        height: 60px;
+    }
+
+    /* Responsive Table Wrapper */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-top: 20px;
+        border-radius: 12px;
+    }
+
+    table {
+        min-width: 600px; /* Ensure table doesn't shrink too much */
+    }
+
+    /* Admin specific */
+    .admin-tabs {
+        overflow-x: auto;
+        padding-bottom: 10px;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .tab-btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+
+    .admin-grid > .glass {
+        min-width: 100%;
     }
 }
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 20px;
+    }
+
+    h1 { font-size: 2.2rem !important; }
+    h2 { font-size: 1.8rem !important; }
+
+    .logo { font-size: 1.5rem; }
+
+    .btn-primary, .btn-secondary {
+        padding: 15px 30px;
+        font-size: 0.9rem;
+    }
+
+    .glass {
+        padding: 20px;
+    }
+
+    .advantage-icon {
+        font-size: 3rem;
+    }
+}
+
+/* Helper Classes */
+.mobile-only { display: none; }
+@media (max-width: 768px) {
+    .mobile-only { display: block; }
+    .desktop-only { display: none; }
+}
+
+.hidden { display: none !important; }

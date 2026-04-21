@@ -12,7 +12,15 @@
     <header class="container">
         <nav>
             <a href="index.html" class="logo">Aura<span>Know</span></a>
-            <div>
+            
+            <button class="mobile-menu-btn mobile-only" id="menuToggle">☰</button>
+
+            <div class="nav-links" id="navLinks">
+                <a href="index.html" onclick="toggleMenu()">Início</a>
+                <a href="login.html" onclick="toggleMenu()" style="color: var(--primary);">Entrar</a>
+            </div>
+
+            <div class="desktop-only">
                 <a href="index.html" class="btn-secondary">Início</a>
                 <a href="login.html" class="btn-primary" style="margin-left: 15px;">Entrar</a>
             </div>
@@ -105,5 +113,19 @@
     </footer>
 
     <script src="script.js"></script>
+    <script>
+        const menuToggle = document.getElementById('menuToggle');
+        const navLinks = document.getElementById('navLinks');
+
+        function toggleMenu() {
+            if (window.innerWidth <= 768) {
+                navLinks.classList.toggle('active');
+                menuToggle.innerText = navLinks.classList.contains('active') ? '✕' : '☰';
+                document.body.style.overflow = navLinks.classList.contains('active') ? 'hidden' : 'auto';
+            }
+        }
+
+        menuToggle.addEventListener('click', toggleMenu);
+    </script>
 </body>
 </html>

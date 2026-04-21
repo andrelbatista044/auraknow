@@ -30,9 +30,16 @@
         .lesson-list-item { background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; margin-left: 20px; border: 1px solid rgba(255,255,255,0.05); }
         
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: var(--bg-dark); border: 1px solid var(--glass-border); padding: 40px; border-radius: 24px; width: 800px; max-width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: var(--bg-dark); border: 1px solid var(--glass-border); padding: 40px; border-radius: 24px; width: 800px; max-width: 95%; max-height: 90vh; overflow-y: auto; }
         .question-card { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; border: 1px solid var(--glass-border); margin-bottom: 20px; }
         main.container { max-width: 1600px; width: 95%; }
+
+        @media (max-width: 768px) {
+            .modal-content { padding: 25px 20px; width: 100%; }
+            .admin-tabs { gap: 10px; }
+            .admin-grid { gap: 20px; }
+            th, td { padding: 10px 5px; font-size: 0.85rem; }
+        }
 
         /* User Profile in Header */
         .user-nav-profile { display: flex; align-items: center; gap: 20px; }
@@ -229,7 +236,7 @@
                         <button type="submit" class="btn-primary" style="width: 100%;">Criar</button>
                     </form>
                 </div>
-                <div class="glass" style="padding: 40px;"><h3>Usuários Cadastrados</h3><table><thead><tr><th>RM/Matr.</th><th>Nome</th><th>Status</th><th>Ações</th></tr></thead><tbody id="userList"></tbody></table></div>
+                <div class="glass" style="padding: 40px;"><h3>Usuários Cadastrados</h3><div class="table-responsive"><table><thead><tr><th>RM/Matr.</th><th>Nome</th><th>Status</th><th>Ações</th></tr></thead><tbody id="userList"></tbody></table></div></div>
             </div>
         </div>
 
@@ -246,10 +253,12 @@
             <div class="glass" style="padding: 40px;">
                 <h3>Resultados das Avaliações</h3>
                 <p style="color: var(--text-dim); margin-bottom: 20px;">Acompanhe o desempenho de todos os alunos.</p>
-                <table id="resultsTable">
-                    <thead><tr><th>Aluno</th><th>Prova</th><th>Nota</th><th>Status</th><th>Data</th></tr></thead>
-                    <tbody id="resultsList"></tbody>
-                </table>
+                <div class="table-responsive">
+                    <table id="resultsTable">
+                        <thead><tr><th>Aluno</th><th>Prova</th><th>Nota</th><th>Status</th><th>Data</th></tr></thead>
+                        <tbody id="resultsList"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -273,10 +282,12 @@
                 </div>
                 <div class="glass" style="padding: 40px;">
                     <h3>Gestão de Faturas</h3>
-                    <table>
-                        <thead><tr><th>Aluno</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr></thead>
-                        <tbody id="financeList"></tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>Aluno</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Ações</th></tr></thead>
+                            <tbody id="financeList"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

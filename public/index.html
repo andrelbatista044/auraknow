@@ -13,13 +13,19 @@
     <header class="container">
         <nav>
             <a href="index.html" class="logo">Aura<span>Know</span></a>
-            <div class="nav-links">
-                <a href="#sobre">A AuraKnow</a>
-                <a href="#vantagens">Vantagens</a>
-                <a href="#depoimentos">Depoimentos</a>
-                <a href="login.html" style="color: var(--primary);">Entrar</a>
+            
+            <button class="mobile-menu-btn mobile-only" id="menuToggle">☰</button>
+
+            <div class="nav-links" id="navLinks">
+                <a href="#sobre" onclick="toggleMenu()">A AuraKnow</a>
+                <a href="#vantagens" onclick="toggleMenu()">Vantagens</a>
+                <a href="#depoimentos" onclick="toggleMenu()">Depoimentos</a>
+                <a href="login.html" style="color: var(--primary);" onclick="toggleMenu()">Entrar</a>
+                <a href="vendas.html" class="btn-primary desktop-only">Ver Cursos</a>
+                <a href="vendas.html" class="btn-primary mobile-only" style="width: 100%; text-align: center;" onclick="toggleMenu()">Ver Cursos</a>
             </div>
-            <a href="vendas.html" class="btn-primary">Ver Cursos</a>
+
+            <a href="vendas.html" class="btn-primary desktop-only">Ver Cursos</a>
         </nav>
     </header>
 
@@ -124,5 +130,19 @@
     </footer>
 
     <script src="script.js"></script>
+    <script>
+        const menuToggle = document.getElementById('menuToggle');
+        const navLinks = document.getElementById('navLinks');
+
+        function toggleMenu() {
+            if (window.innerWidth <= 768) {
+                navLinks.classList.toggle('active');
+                menuToggle.innerText = navLinks.classList.contains('active') ? '✕' : '☰';
+                document.body.style.overflow = navLinks.classList.contains('active') ? 'hidden' : 'auto';
+            }
+        }
+
+        menuToggle.addEventListener('click', toggleMenu);
+    </script>
 </body>
 </html>
