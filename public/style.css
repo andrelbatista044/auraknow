@@ -14,6 +14,21 @@
     --shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
 }
 
+[data-theme="light"] {
+    --bg-dark: #F8F9FA;
+    --bg-gradient-start: #F8F9FA;
+    --bg-gradient-end: #E9D5FF;
+    --primary: #7C3AED;
+    --primary-light: #A78BFA;
+    --accent: #4C1D95;
+    --text-main: #1F2937;
+    --text-dim: #4B5563;
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+
 * {
     margin: 0;
     padding: 0;
@@ -40,7 +55,15 @@ body {
                 radial-gradient(circle at 90% 80%, #9966CC 0%, transparent 40%);
     opacity: 0.35;
     filter: blur(120px);
+    transition: opacity 0.5s ease;
 }
+
+[data-theme="light"] .bg-mesh {
+    background: radial-gradient(circle at 10% 20%, #E9D5FF 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, #C39BE3 0%, transparent 40%);
+    opacity: 0.7;
+}
+
 
 /* Typography */
 h1, h2, h3 {
@@ -496,3 +519,64 @@ footer {
 }
 
 .hidden { display: none !important; }
+
+/* Theme Toggle Component */
+.theme-toggle {
+    display: inline-flex;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 100px;
+    padding: 4px;
+    gap: 4px;
+    align-items: center;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.theme-toggle-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0;
+}
+
+.theme-toggle-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.theme-toggle-btn.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(153, 102, 204, 0.2);
+}
+
+[data-theme="light"] .theme-toggle-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* Adjustments for light theme elements */
+[data-theme="light"] input, 
+[data-theme="light"] select, 
+[data-theme="light"] textarea {
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--text-main);
+}
+
+[data-theme="light"] .nav-links.active {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="light"] .mobile-menu-btn {
+    color: var(--text-main);
+}
+

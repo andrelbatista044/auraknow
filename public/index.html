@@ -6,6 +6,8 @@
     <title>AuraKnow | Institucional</title>
     <meta name="description" content="AuraKnow - Excelência em Educação Digital. Transformando o futuro através do conhecimento.">
     <link rel="stylesheet" href="style.css">
+    <script src="theme.js"></script>
+
 </head>
 <body>
     <div class="bg-mesh"></div>
@@ -23,9 +25,23 @@
                 <a href="login.html" style="color: var(--primary);" onclick="toggleMenu()">Entrar</a>
                 <a href="vendas.html" class="btn-primary desktop-only">Ver Cursos</a>
                 <a href="vendas.html" class="btn-primary mobile-only" style="width: 100%; text-align: center;" onclick="toggleMenu()">Ver Cursos</a>
+                
+                <div class="theme-toggle" style="margin-top: 20px;">
+                    <button class="theme-toggle-btn" data-theme-value="light" title="Modo Claro">☀️</button>
+                    <button class="theme-toggle-btn" data-theme-value="dark" title="Modo Escuro">🌙</button>
+                    <button class="theme-toggle-btn" data-theme-value="system" title="Sistema">🖥️</button>
+                </div>
             </div>
 
-            <a href="vendas.html" class="btn-primary desktop-only">Ver Cursos</a>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div class="theme-toggle desktop-only">
+                    <button class="theme-toggle-btn" data-theme-value="light" title="Modo Claro">☀️</button>
+                    <button class="theme-toggle-btn" data-theme-value="dark" title="Modo Escuro">🌙</button>
+                    <button class="theme-toggle-btn" data-theme-value="system" title="Sistema">🖥️</button>
+                </div>
+                <a href="vendas.html" class="btn-primary desktop-only">Ver Cursos</a>
+            </div>
+
         </nav>
     </header>
 

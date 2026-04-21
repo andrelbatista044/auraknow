@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AuraKnow | Login</title>
     <link rel="stylesheet" href="style.css">
+    <script src="theme.js"></script>
     <style>
+
         .login-container {
             max-width: 450px;
             margin: 60px auto;
@@ -25,11 +27,12 @@
             width: 100%;
             padding: 15px;
             border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--glass-bg);
             border: 1px solid var(--glass-border);
-            color: white;
+            color: var(--text-main);
             font-size: 1rem;
             outline: none;
+
         }
         input:focus {
             border-color: var(--primary);
@@ -44,6 +47,13 @@
 </head>
 <body>
     <div class="bg-mesh"></div>
+
+    <div class="theme-toggle" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+        <button class="theme-toggle-btn" data-theme-value="light" title="Modo Claro">☀️</button>
+        <button class="theme-toggle-btn" data-theme-value="dark" title="Modo Escuro">🌙</button>
+        <button class="theme-toggle-btn" data-theme-value="system" title="Sistema">🖥️</button>
+    </div>
+
     
     <div class="container">
         <div class="glass login-container">

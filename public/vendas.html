@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AuraKnow | Nossos Cursos</title>
     <link rel="stylesheet" href="style.css">
+    <script src="theme.js"></script>
 </head>
+
 
 <body>
     <div class="bg-mesh"></div>
@@ -20,12 +22,24 @@
             <div class="nav-links" id="navLinks">
                 <a href="index.html" onclick="toggleMenu()">Início</a>
                 <a href="login.html" onclick="toggleMenu()" style="color: var(--primary);">Entrar</a>
+
+                <div class="theme-toggle" style="margin-top: 20px;">
+                    <button class="theme-toggle-btn" data-theme-value="light" title="Modo Claro">☀️</button>
+                    <button class="theme-toggle-btn" data-theme-value="dark" title="Modo Escuro">🌙</button>
+                    <button class="theme-toggle-btn" data-theme-value="system" title="Sistema">🖥️</button>
+                </div>
             </div>
 
-            <div class="desktop-only">
+            <div class="desktop-only" style="display: flex; align-items: center; gap: 20px;">
+                <div class="theme-toggle">
+                    <button class="theme-toggle-btn" data-theme-value="light" title="Modo Claro">☀️</button>
+                    <button class="theme-toggle-btn" data-theme-value="dark" title="Modo Escuro">🌙</button>
+                    <button class="theme-toggle-btn" data-theme-value="system" title="Sistema">🖥️</button>
+                </div>
                 <a href="index.html" class="btn-secondary">Início</a>
-                <a href="login.html" class="btn-primary" style="margin-left: 15px;">Entrar</a>
+                <a href="login.html" class="btn-primary">Entrar</a>
             </div>
+
         </nav>
     </header>
 
