@@ -253,6 +253,57 @@ app.get('/api/admin/all-results', isTeacher, async (req, res) => {
     res.json(data);
 });
 
+// --- CERTIFICADOS ---
+app.get('/api/me/certificates', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        // 1. Buscar matrículas do aluno
+        const { data: enrollments } = await supabase.from('enrollments').select('course_id, courses(title)').eq('user_id', userId);
+        if (!enrollments) return res.json([]);
+
+        const completedCourses = [];
+
+        for (const en of enrollments) {
+            const courseId = en.course_id;
+            const courseTitle = en.courses.title;
+
+            // 2. Buscar todas as provas do curso
+            const { data: subjects } = await supabase.from('subjects').select('id').eq('course_id', courseId);
+            const subIds = (subjects || []).map(s => s.id);
+            
+            const { data: modules } = await supabase.from('modules').select('id').in('subject_id', subIds);
+            const modIds = (modules || []).map(m => m.id);
+            
+            const { data: quizzes } = await supabase.from('quizzes').select('id').in('module_id', modIds);
+            const quizIds = (quizzes || []).map(q => q.id);
+
+            // Se não houver provas, consideramos o curso como completo ao estar matriculado (ou você pode definir outra regra)
+            if (quizIds.length === 0) {
+                completedCourses.push({ id: courseId, title: courseTitle, date: new Date() });
+                continue;
+            }
+
+            // 3. Verificar se passou em todas as provas
+            const { data: attempts } = await supabase.from('quiz_attempts').select('quiz_id, passed, completed_at').eq('user_id', userId).in('quiz_id', quizIds);
+            const passedQuizzes = new Set((attempts || []).filter(a => a.passed).map(a => a.quiz_id));
+            
+            const allPassed = quizIds.every(id => passedQuizzes.has(id));
+
+            if (allPassed) {
+                // Pega a data da última prova concluída
+                const lastDate = attempts.sort((a,b) => new Date(b.completed_at) - new Date(a.completed_at))[0]?.completed_at;
+                completedCourses.push({ id: courseId, title: courseTitle, date: lastDate || new Date() });
+            }
+        }
+
+        res.json(completedCourses);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao buscar certificados' });
+    }
+});
+
 // --- USUÁRIOS (Admin/Finance) ---
 app.get('/api/admin/users', isFinance, async (req, res) => {
     const { data, error } = await supabase.from('users').select('id, name, email, role, is_active, registration').order('created_at', { ascending: false });

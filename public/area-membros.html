@@ -182,6 +182,7 @@
             <div class="course-section-title" style="margin-bottom: 15px; font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; font-weight: bold;">Painel do Aluno</div>
             <div id="financeBtn" class="course-item" onclick="showFinance()">💳 Financeiro</div>
             <div id="gradesBtn" class="course-item" onclick="showGrades()">🎓 Boletim de Notas</div>
+            <div id="certificatesBtn" class="course-item" onclick="showCertificates()">📜 Meus Certificados</div>
             
             <div class="course-section-title" style="margin-top: 25px; margin-bottom: 15px; font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; font-weight: bold;">Meus Cursos</div>
             <div id="enrollmentList"></div>
@@ -256,6 +257,14 @@
                     <tbody id="gradesContent">
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <div id="certificatesView" style="display: none;">
+            <h1>Meus Certificados</h1>
+            <p style="color: var(--text-dim); margin-top: 5px;">Sua galeria de conquistas e excelência.</p>
+            <div id="certificatesList" style="margin-top: 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+                <!-- Carregado dinamicamente -->
             </div>
         </div>
 
@@ -340,6 +349,7 @@
             document.getElementById('mainView').style.display = 'none';
             document.getElementById('financeView').style.display = 'none';
             document.getElementById('gradesView').style.display = 'none';
+            document.getElementById('certificatesView').style.display = 'none';
             document.querySelectorAll('.course-item').forEach(i => i.classList.remove('active'));
         }
 
@@ -429,6 +439,50 @@
             document.getElementById('printHeader').style.display = 'block';
             window.print();
             setTimeout(() => { document.getElementById('printHeader').style.display = 'none'; }, 1000);
+        }
+
+        async function showCertificates() {
+            toggleSidebar(); // Fecha no mobile
+            hideAllViews();
+            document.getElementById('certificatesBtn').classList.add('active');
+            document.getElementById('certificatesView').style.display = 'block';
+            
+            const list = document.getElementById('certificatesList');
+            list.innerHTML = '<p>Carregando conquistas...</p>';
+            
+            try {
+                const res = await fetch('/api/me/certificates');
+                const certs = await res.json();
+                
+                if (certs.length === 0) {
+                    list.style.display = 'block';
+                    list.innerHTML = `
+                        <div class="glass" style="padding: 60px; text-align: center; grid-column: 1 / -1;">
+                            <div style="font-size: 4rem; margin-bottom: 20px;">🚀</div>
+                            <h2 style="color: var(--primary); margin-bottom: 15px;">A jornada apenas começou!</h2>
+                            <p style="color: var(--text-dim); font-size: 1.1rem; line-height: 1.6; max-width: 600px; margin: 0 auto;">
+                                Você ainda não possui certificados. Lembre-se: <strong>"O sucesso é a soma de pequenos esforços repetidos dia após dia."</strong>
+                                <br><br>Continue estudando, conclua as avaliações e sua galeria de conquistas logo estará cheia!
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                list.style.display = 'grid';
+                list.innerHTML = certs.map(c => `
+                    <div class="glass" style="padding: 30px; display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div style="font-size: 2rem; margin-bottom: 15px;">📜</div>
+                            <h3 style="color: var(--primary); margin-bottom: 10px;">${c.title}</h3>
+                            <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 20px;">Concluído em: ${new Date(c.date).toLocaleDateString('pt-BR')}</p>
+                        </div>
+                        <button class="btn-primary" style="width: 100%;" onclick="showCertificate('${c.title}')">Ver Certificado</button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = '<p style="color: #e74c3c;">Erro ao carregar certificados.</p>';
+            }
         }
 
         async function loadResults() {
